@@ -110,9 +110,15 @@ class _ProductCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color:
+              Theme.of(context).cardTheme.color ??
+              Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+          ),
         ),
         child: Row(
           children: [
@@ -144,7 +150,10 @@ class _ProductCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     product.sku ?? 'No SKU',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),

@@ -1,71 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dart';
-import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
+import 'package:flutter_invoice_app/features/lpo/presentation/providers/lpo_provider.dart';
+import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
-import 'package:flutter_invoice_app/features/invoice/presentation/screens/invoice_form_screen.dart'; // Add import
+import 'package:flutter_invoice_app/features/lpo/presentation/screens/lpo_form_screen.dart';
 import 'package:intl/intl.dart';
 
-class InvoiceListScreen extends ConsumerWidget {
-  const InvoiceListScreen({super.key});
+class LpoListScreen extends ConsumerWidget {
+  const LpoListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(invoiceRepositoryProvider);
-    final invoices = repo.getAllInvoices();
+    final lposAsyncValue = ref.watch(lpoListProvider);
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Invoices'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'All'),
-              Tab(text: 'Paid'),
-              Tab(text: 'Pending'),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Purchase Orders')),
+      body: lposAsyncValue.when(
+        data: (lpos) => _LpoList(lpos: lpos),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const LpoFormScreen()));
+        },
+        label: const Text(
+          'New Order',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        body: TabBarView(
-          children: [
-            _InvoiceList(invoices: invoices),
-            _InvoiceList(
-              invoices: invoices
-                  .where((i) => i.status == InvoiceStatus.paid)
-                  .toList(),
-            ),
-            _InvoiceList(
-              invoices: invoices
-                  .where((i) => i.status != InvoiceStatus.paid)
-                  .toList(),
-            ),
-          ],
-        ),
+        icon: const Icon(Icons.add),
       ),
     );
   }
 }
 
-class _InvoiceList extends StatelessWidget {
-  final List<Invoice> invoices;
-  const _InvoiceList({required this.invoices});
+class _LpoList extends StatelessWidget {
+  final List<Lpo> lpos;
+  const _LpoList({required this.lpos});
 
   @override
   Widget build(BuildContext context) {
-    if (invoices.isEmpty) {
+    if (lpos.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.receipt_long_outlined,
+              Icons.shopping_bag_outlined,
               size: 64,
               color: Colors.grey.shade300,
             ),
             const SizedBox(height: 16),
             Text(
-              'No invoices found',
+              'No purchase orders found',
               style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
             ),
           ],
@@ -74,32 +63,30 @@ class _InvoiceList extends StatelessWidget {
     }
     return ListView.builder(
       padding: const EdgeInsets.all(24),
-      itemCount: invoices.length,
+      itemCount: lpos.length,
       itemBuilder: (context, index) {
-        final invoice = invoices[index];
+        final lpo = lpos[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: _InvoiceCard(invoice: invoice),
+          child: _LpoCard(lpo: lpo),
         );
       },
     );
   }
 }
 
-class _InvoiceCard extends StatelessWidget {
-  final Invoice invoice;
+class _LpoCard extends StatelessWidget {
+  final Lpo lpo;
 
-  const _InvoiceCard({required this.invoice});
+  const _LpoCard({required this.lpo});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => InvoiceFormScreen(invoice: invoice),
-          ),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => LpoFormScreen(lpo: lpo)));
       },
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -128,12 +115,12 @@ class _InvoiceCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
-                ).colorScheme.primary.withValues(alpha: 0.05),
+                ).colorScheme.secondary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
-                Icons.description_outlined,
-                color: Theme.of(context).colorScheme.primary,
+                Icons.inventory_2_outlined,
+                color: Theme.of(context).colorScheme.secondary,
               ),
             ),
             const SizedBox(width: 16),
@@ -142,7 +129,7 @@ class _InvoiceCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    invoice.client.name,
+                    lpo.vendor.name,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 17,
@@ -150,7 +137,7 @@ class _InvoiceCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${invoice.invoiceNumber} • ${DateFormat.yMMMd().format(invoice.date)}',
+                    '${lpo.lpoNumber} • ${DateFormat.yMMMd().format(lpo.date)}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,
@@ -163,14 +150,14 @@ class _InvoiceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  CurrencyFormatter.format(invoice.total),
+                  CurrencyFormatter.format(lpo.total),
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                   ),
                 ),
                 const SizedBox(height: 6),
-                _StatusBadge(status: invoice.status),
+                _StatusBadge(status: lpo.status),
               ],
             ),
           ],
@@ -181,13 +168,31 @@ class _InvoiceCard extends StatelessWidget {
 }
 
 class _StatusBadge extends StatelessWidget {
-  final InvoiceStatus status;
+  final LpoStatus status;
 
   const _StatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    final color = status == InvoiceStatus.paid ? Colors.green : Colors.orange;
+    Color color;
+    switch (status) {
+      case LpoStatus.draft:
+        color = Colors.grey;
+        break;
+      case LpoStatus.sent:
+        color = Colors.blue;
+        break;
+      case LpoStatus.approved:
+        color = Colors.green;
+        break;
+      case LpoStatus.rejected:
+        color = Colors.red;
+        break;
+      case LpoStatus.completed:
+        color = Colors.teal;
+        break;
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

@@ -78,12 +78,17 @@ class _QuotationList extends StatelessWidget {
             Icon(
               Icons.request_quote_outlined,
               size: 64,
-              color: Colors.grey.shade300,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
             ),
             const SizedBox(height: 16),
             Text(
               'No quotations found',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -121,9 +126,13 @@ class _QuotationCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -137,9 +146,7 @@ class _QuotationCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.05),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
@@ -162,7 +169,10 @@ class _QuotationCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${quotation.quotationNumber} • ${DateFormat.yMMMd().format(quotation.date)}',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),

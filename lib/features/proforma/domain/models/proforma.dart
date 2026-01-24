@@ -1,10 +1,10 @@
 import 'package:hive/hive.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 
-part 'quotation.g.dart';
+part 'proforma.g.dart';
 
-@HiveType(typeId: 6)
-enum QuotationStatus {
+@HiveType(typeId: 10)
+enum ProformaStatus {
   @HiveField(0)
   draft,
   @HiveField(1)
@@ -14,15 +14,15 @@ enum QuotationStatus {
   @HiveField(3)
   rejected,
   @HiveField(4)
-  expired,
+  converted, // To Invoice
 }
 
-@HiveType(typeId: 7)
-class Quotation {
+@HiveType(typeId: 11)
+class ProformaInvoice {
   @HiveField(0)
   final String id;
   @HiveField(1)
-  final String quotationNumber;
+  final String proformaNumber;
   @HiveField(2)
   final DateTime date;
   @HiveField(3)
@@ -40,21 +40,17 @@ class Quotation {
   @HiveField(9)
   final double total;
   @HiveField(10)
-  final QuotationStatus status;
+  final ProformaStatus status;
   @HiveField(11)
   final String? notes;
   @HiveField(12)
   final String? terms;
   @HiveField(13)
-  final String? enquiryRef;
-  @HiveField(14)
-  final String? project;
-  @HiveField(15)
   final String? termsAndConditions;
 
-  Quotation({
+  ProformaInvoice({
     required this.id,
-    required this.quotationNumber,
+    required this.proformaNumber,
     required this.date,
     this.validUntil,
     required this.client,
@@ -66,16 +62,14 @@ class Quotation {
     required this.status,
     this.notes,
     this.terms,
-    this.enquiryRef,
-    this.project,
     this.termsAndConditions,
   });
 
   // Helper to convert to Invoice
   Invoice toInvoice({String? invoiceNumber}) {
     return Invoice(
-      id: id, // Or generate new one
-      invoiceNumber: invoiceNumber ?? 'INV-FROM-$quotationNumber',
+      id: id, // Or generate new one, usually new
+      invoiceNumber: invoiceNumber ?? 'INV-FROM-$proformaNumber',
       date: DateTime.now(),
       client: client,
       items: items,

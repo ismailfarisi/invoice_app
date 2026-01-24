@@ -5,8 +5,11 @@ import 'package:flutter_invoice_app/features/quotation/presentation/screens/quot
 import 'package:flutter_invoice_app/features/quotation/presentation/screens/quotation_form_screen.dart';
 import 'package:flutter_invoice_app/features/client/presentation/screens/client_list_screen.dart';
 import 'package:flutter_invoice_app/features/product/presentation/screens/product_list_screen.dart';
+import 'package:flutter_invoice_app/features/lpo/presentation/screens/lpo_list_screen.dart';
+import 'package:flutter_invoice_app/features/proforma/presentation/screens/proforma_list_screen.dart'; // Add import
 import 'package:flutter_invoice_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:flutter_invoice_app/features/dashboard/widgets/dashboard_overview.dart';
+import 'package:flutter_invoice_app/features/dashboard/widgets/mobile_menu.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,37 +23,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Desktop check using shortestSide for robustness
+    final isDesktop = MediaQuery.of(context).size.shortestSide >= 600;
+
+    // Pages list remains same for consistency / desktop mapping
     final List<Widget> pages = [
       const DashboardOverview(),
       const InvoiceListScreen(),
       const QuotationListScreen(),
       const ClientListScreen(),
       const ProductListScreen(),
+      const LpoListScreen(),
+      const ProformaListScreen(), // Add Proforma Screen
       const SettingsScreen(),
     ];
 
+    // On mobile, if index is > 2, we treat it as the "Menu" tab (index 3)
+    final int effectiveMobileIndex = _selectedIndex > 3 ? 3 : _selectedIndex;
+    final int displayedIndex = isDesktop
+        ? _selectedIndex
+        : effectiveMobileIndex;
+
     return Scaffold(
-      body: Row(
-        children: [
-          _Sidebar(
-            selectedIndex: _selectedIndex,
-            onItemSelected: (index) => setState(() => _selectedIndex = index),
-          ),
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  bottomLeft: Radius.circular(32),
-                ),
+      body: SafeArea(
+        child: Row(
+          children: [
+            if (isDesktop)
+              _Sidebar(
+                selectedIndex: _selectedIndex,
+                onItemSelected: (index) =>
+                    setState(() => _selectedIndex = index),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: pages[_selectedIndex],
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: isDesktop
+                      ? const BorderRadius.only(
+                          topLeft: Radius.circular(32),
+                          bottomLeft: Radius.circular(32),
+                        )
+                      : null,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: isDesktop
+                    ? pages[_selectedIndex]
+                    : (_selectedIndex > 2
+                          ? const MobileMenu()
+                          : pages[_selectedIndex]),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+      bottomNavigationBar: isDesktop
+          ? null
+          : NavigationBar(
+              selectedIndex: displayedIndex,
+              onDestinationSelected: (index) =>
+                  setState(() => _selectedIndex = index),
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long),
+                  label: 'Invoices',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.request_quote_outlined),
+                  selectedIcon: Icon(Icons.request_quote),
+                  label: 'Quotes',
+                ),
+                NavigationDestination(icon: Icon(Icons.menu), label: 'Menu'),
+              ],
+            ),
       floatingActionButton: _selectedIndex == 1 || _selectedIndex == 2
           ? FloatingActionButton.extended(
               onPressed: () {
@@ -139,13 +189,27 @@ class _Sidebar extends StatelessWidget {
             isSelected: selectedIndex == 4,
             onTap: () => onItemSelected(4),
           ),
+          _SidebarItem(
+            icon: Icons.shopping_bag_outlined,
+            selectedIcon: Icons.shopping_bag,
+            label: 'LPO',
+            isSelected: selectedIndex == 5,
+            onTap: () => onItemSelected(5),
+          ),
+          _SidebarItem(
+            icon: Icons.assignment_outlined,
+            selectedIcon: Icons.assignment,
+            label: 'Proforma',
+            isSelected: selectedIndex == 6,
+            onTap: () => onItemSelected(6),
+          ),
           const Spacer(),
           _SidebarItem(
             icon: Icons.settings_outlined,
             selectedIcon: Icons.settings,
             label: 'Settings',
-            isSelected: selectedIndex == 5,
-            onTap: () => onItemSelected(5),
+            isSelected: selectedIndex == 7, // Update index
+            onTap: () => onItemSelected(7),
           ),
           const SizedBox(height: 24),
         ],

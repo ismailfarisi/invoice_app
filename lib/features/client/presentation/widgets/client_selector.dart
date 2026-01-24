@@ -19,18 +19,18 @@ class ClientSelector extends StatelessWidget {
       builder: (context, Box<Client> box, _) {
         final clients = box.values.toList();
         if (clients.isEmpty) {
-          return ListTile(
-            title: const Text('No companies available'),
-            trailing: TextButton(
-              onPressed: () {
-                // Implementation for adding company
-              },
-              child: const Text('Add Company First'),
+          return DropdownButtonFormField<Client>(
+            decoration: const InputDecoration(
+              labelText: 'Select Company',
+              hintText: 'No companies available',
             ),
+            items: const [],
+            onChanged: null,
           );
         }
 
         return DropdownButtonFormField<Client>(
+          isExpanded: true,
           initialValue:
               selectedClient != null &&
                   clients.any((c) => c.id == selectedClient!.id)
@@ -38,7 +38,10 @@ class ClientSelector extends StatelessWidget {
               : null,
           decoration: const InputDecoration(labelText: 'Select Company'),
           items: clients.map((client) {
-            return DropdownMenuItem(value: client, child: Text(client.name));
+            return DropdownMenuItem(
+              value: client,
+              child: Text(client.name, overflow: TextOverflow.ellipsis),
+            );
           }).toList(),
           onChanged: onChanged,
           validator: (val) => val == null ? 'Please select a company' : null,

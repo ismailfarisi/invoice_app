@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -18,6 +20,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _addressController;
   late TextEditingController _taxIdController;
   late TextEditingController _bankDetailsController;
+  String? _logoPath;
 
   @override
   void initState() {
@@ -31,6 +34,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _bankDetailsController = TextEditingController(
       text: profile?.bankDetails ?? '',
     );
+    _logoPath = profile?.logoPath;
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _logoPath = pickedFile.path;
+      });
+    }
   }
 
   void _save() {
@@ -42,6 +57,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         address: _addressController.text,
         taxId: _taxIdController.text,
         bankDetails: _bankDetailsController.text,
+        logoPath: _logoPath,
       );
 
       ref.read(businessProfileRepositoryProvider).saveProfile(profile);
@@ -63,86 +79,121 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            _SettingsSection(
-              title: 'Company Profile',
-              icon: Icons.business_outlined,
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Company Name',
-                    prefixIcon: Icon(Icons.business),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Center(
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        backgroundImage: _logoPath != null
+                            ? FileImage(File(_logoPath!))
+                            : null,
+                        child: _logoPath == null
+                            ? Icon(
+                                Icons.add_a_photo,
+                                size: 40,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              )
+                            : null,
+                      ),
+                    ),
                   ),
-                  validator: (val) =>
-                      val == null || val.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Company Email',
-                    prefixIcon: Icon(Icons.email_outlined),
+                  const SizedBox(height: 24),
+                  _SettingsSection(
+                    title: 'Company Profile',
+                    icon: Icons.business_outlined,
+                    children: [
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Company Name',
+                          prefixIcon: Icon(Icons.business),
+                        ),
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Company Email',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _phoneController,
+                        decoration: const InputDecoration(
+                          labelText: 'Company Phone',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _addressController,
+                        decoration: const InputDecoration(
+                          labelText: 'Address',
+                          prefixIcon: Icon(Icons.location_on_outlined),
+                        ),
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _taxIdController,
+                        decoration: const InputDecoration(
+                          labelText: 'Tax ID / VAT Number',
+                          prefixIcon: Icon(Icons.tag),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Company Phone',
-                    prefixIcon: Icon(Icons.phone_outlined),
+                  const SizedBox(height: 24),
+                  _SettingsSection(
+                    title: 'Payment Information',
+                    icon: Icons.payments_outlined,
+                    children: [
+                      TextFormField(
+                        controller: _bankDetailsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Bank Details (for PDF)',
+                          hintText:
+                              'Bank Name: XYZ\nAccount: 123456789\nIFSC: ABCD0123',
+                          prefixIcon: Icon(Icons.account_balance_outlined),
+                        ),
+                        maxLines: 4,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _addressController,
-                  decoration: const InputDecoration(
-                    labelText: 'Address',
-                    prefixIcon: Icon(Icons.location_on_outlined),
+                  const SizedBox(height: 40),
+                  FilledButton(
+                    onPressed: _save,
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text(
+                        'Save Settings',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _taxIdController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tax ID / VAT Number',
-                    prefixIcon: Icon(Icons.tag),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _SettingsSection(
-              title: 'Payment Information',
-              icon: Icons.payments_outlined,
-              children: [
-                TextFormField(
-                  controller: _bankDetailsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Bank Details (for PDF)',
-                    hintText:
-                        'Bank Name: XYZ\nAccount: 123456789\nIFSC: ABCD0123',
-                    prefixIcon: Icon(Icons.account_balance_outlined),
-                  ),
-                  maxLines: 4,
-                ),
-              ],
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: _save,
-              child: const Text(
-                'Save Settings',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );
@@ -188,9 +239,15 @@ class _SettingsSection extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color:
+                Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.grey.shade100),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
           ),
           child: Column(children: children),
         ),

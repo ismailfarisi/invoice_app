@@ -1,52 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
+import 'package:flutter_invoice_app/features/lpo/presentation/providers/lpo_provider.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
-import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dart';
-import 'package:flutter_invoice_app/features/invoice/presentation/screens/pdf_preview_screen.dart';
-import 'package:flutter_invoice_app/features/client/presentation/widgets/client_selector.dart'; // Add import
+import 'package:flutter_invoice_app/features/client/presentation/widgets/client_selector.dart';
 import 'package:flutter_invoice_app/features/client/presentation/screens/client_form_screen.dart';
-import 'package:flutter_invoice_app/features/product/presentation/widgets/product_selector.dart'; // Add import
+import 'package:flutter_invoice_app/features/product/presentation/widgets/product_selector.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
 import 'package:uuid/uuid.dart';
 
-class InvoiceFormScreen extends ConsumerStatefulWidget {
-  final Invoice? invoice;
-  const InvoiceFormScreen({super.key, this.invoice});
+// NOTE: We'll add PDF Preview later once the service is updated
+
+class LpoFormScreen extends ConsumerStatefulWidget {
+  final Lpo? lpo;
+  const LpoFormScreen({super.key, this.lpo});
 
   @override
-  ConsumerState<InvoiceFormScreen> createState() => _InvoiceFormScreenState();
+  ConsumerState<LpoFormScreen> createState() => _LpoFormScreenState();
 }
 
-class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
+class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  Client? _selectedClient; // Changed from controller
-  late TextEditingController _invoiceNumberController;
+  Client? _selectedVendor;
+  late TextEditingController _lpoNumberController;
   late List<LineItem> _items;
   late DateTime _date;
-  late InvoiceStatus _status;
+  late LpoStatus _status;
   late TextEditingController _termsAndConditionsController;
 
   @override
   void initState() {
     super.initState();
-    _selectedClient =
-        widget.invoice?.client; // Initialize from existing invoice
-    _invoiceNumberController = TextEditingController(
+    _selectedVendor = widget.lpo?.vendor;
+    _lpoNumberController = TextEditingController(
       text:
-          widget.invoice?.invoiceNumber ??
-          'INV-${DateTime.now().millisecondsSinceEpoch}',
+          widget.lpo?.lpoNumber ??
+          'LPO-${DateTime.now().millisecondsSinceEpoch}',
     );
-    _items = widget.invoice?.items.toList() ?? [];
-    _date = widget.invoice?.date ?? DateTime.now();
-    _status = widget.invoice?.status ?? InvoiceStatus.draft;
+    _items = widget.lpo?.items.toList() ?? [];
+    _date = widget.lpo?.date ?? DateTime.now();
+    _status = widget.lpo?.status ?? LpoStatus.draft;
     _termsAndConditionsController = TextEditingController(
-      text: widget.invoice?.termsAndConditions,
+      text: widget.lpo?.termsAndConditions,
     );
   }
 
   @override
   void dispose() {
-    _invoiceNumberController.dispose();
+    _lpoNumberController.dispose();
     _termsAndConditionsController.dispose();
     super.dispose();
   }
@@ -75,6 +76,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
 
   void _save() {
     if (_formKey.currentState!.validate()) {
+      if (_selectedVendor == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Please select a vendor')));
+        return;
+      }
       if (_items.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please add at least one item')),
@@ -83,14 +90,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       }
 
       final subtotal = _subtotal;
-      final tax = subtotal * 0.1; // Default 10% tax for now
+      final tax = subtotal * 0.05; // Default 5% tax for LPO usually
       final total = subtotal + tax;
 
-      final invoice = Invoice(
-        id: widget.invoice?.id ?? const Uuid().v4(),
-        invoiceNumber: _invoiceNumberController.text,
+      final lpo = Lpo(
+        id: widget.lpo?.id ?? const Uuid().v4(),
+        lpoNumber: _lpoNumberController.text,
         date: _date,
-        client: _selectedClient!, // Use selected object
+        vendor: _selectedVendor!,
         items: _items,
         subtotal: subtotal,
         taxAmount: tax,
@@ -101,7 +108,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         termsAndConditions: _termsAndConditionsController.text,
       );
 
-      ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
+      ref.read(lpoListProvider.notifier).saveLpo(lpo);
       Navigator.pop(context);
     }
   }
@@ -114,28 +121,18 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       appBar: AppBar(
         title: Text(
-          widget.invoice == null ? 'New Invoice' : 'Edit Invoice',
+          widget.lpo == null ? 'New Purchase Order' : 'Edit Purchase Order',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            onPressed: () async {
-              if (widget.invoice != null) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PdfPreviewScreen(invoice: widget.invoice!),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please save the invoice first'),
-                  ),
-                );
-              }
-            },
-          ),
+          // PDF Preview Button Placeholder
+          if (widget.lpo != null)
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: () {
+                // Navigate to LPO Preview
+              },
+            ),
           const SizedBox(width: 8),
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -156,19 +153,19 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
-                  // Client Details Section
+                  // Vendor Details Section
                   _FormSection(
-                    title: 'Client Selection',
-                    icon: Icons.person_outline,
+                    title: 'Vendor Selection',
+                    icon: Icons.store_outlined,
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: ClientSelector(
-                              selectedClient: _selectedClient,
+                              selectedClient: _selectedVendor,
                               onChanged: (client) {
                                 setState(() {
-                                  _selectedClient = client;
+                                  _selectedVendor = client;
                                 });
                               },
                             ),
@@ -191,28 +188,28 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Invoice Details Section
+                  // LPO Details Section
                   _FormSection(
-                    title: 'Invoice Info',
+                    title: 'LPO Info',
                     icon: Icons.info_outline,
                     children: [
                       TextFormField(
-                        controller: _invoiceNumberController,
+                        controller: _lpoNumberController,
                         decoration: const InputDecoration(
-                          labelText: 'Invoice Number',
+                          labelText: 'LPO Number',
                           prefixIcon: Icon(Icons.numbers),
                         ),
                         validator: (val) =>
                             val == null || val.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 20),
-                      DropdownButtonFormField<InvoiceStatus>(
+                      DropdownButtonFormField<LpoStatus>(
                         initialValue: _status,
                         decoration: const InputDecoration(
                           labelText: 'Status',
                           prefixIcon: Icon(Icons.label_important_outline),
                         ),
-                        items: InvoiceStatus.values.map((status) {
+                        items: LpoStatus.values.map((status) {
                           return DropdownMenuItem(
                             value: status,
                             child: Text(status.name.toUpperCase()),
@@ -235,7 +232,8 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         controller: _termsAndConditionsController,
                         decoration: const InputDecoration(
                           labelText: 'Terms & Conditions',
-                          hintText: 'Enter invoice terms and conditions...',
+                          hintText:
+                              'Enter purchase order terms and conditions...',
                         ),
                         maxLines: 4,
                       ),
@@ -295,7 +293,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                       children: [
                         _TotalRow(label: 'Subtotal', value: _subtotal),
                         const SizedBox(height: 8),
-                        _TotalRow(label: 'Tax (10%)', value: _subtotal * 0.1),
+                        _TotalRow(label: 'Tax (5%)', value: _subtotal * 0.05),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 12),
                           child: Divider(),
@@ -311,7 +309,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                               ),
                             ),
                             Text(
-                              CurrencyFormatter.format(_subtotal * 1.1),
+                              CurrencyFormatter.format(_subtotal * 1.05),
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w900,

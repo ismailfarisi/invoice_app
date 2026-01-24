@@ -7,6 +7,8 @@ import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart'
 import 'package:flutter_invoice_app/features/quotation/domain/models/quotation.dart';
 import 'package:flutter_invoice_app/features/product/domain/models/product.dart';
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
+import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
+import 'package:flutter_invoice_app/features/proforma/domain/models/proforma.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,12 +25,19 @@ void main() async {
   Hive.registerAdapter(QuotationAdapter());
   Hive.registerAdapter(QuotationStatusAdapter());
 
+  Hive.registerAdapter(LpoAdapter());
+  Hive.registerAdapter(LpoStatusAdapter());
+  Hive.registerAdapter(ProformaInvoiceAdapter());
+  Hive.registerAdapter(ProformaStatusAdapter());
+
   // Open Boxes
   await Hive.openBox<Invoice>('invoices');
   await Hive.openBox<Quotation>('quotations');
   await Hive.openBox<Client>('clients');
   await Hive.openBox<Product>('products');
   await Hive.openBox<BusinessProfile>('settings');
+  await Hive.openBox<Lpo>('lpos');
+  await Hive.openBox<ProformaInvoice>('proformas');
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -45,6 +54,7 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       home: const DashboardScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

@@ -30,13 +30,14 @@ class InvoiceAdapter extends TypeAdapter<Invoice> {
       status: fields[10] as InvoiceStatus,
       notes: fields[11] as String?,
       terms: fields[12] as String?,
+      termsAndConditions: fields[13] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Invoice obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -62,7 +63,9 @@ class InvoiceAdapter extends TypeAdapter<Invoice> {
       ..writeByte(11)
       ..write(obj.notes)
       ..writeByte(12)
-      ..write(obj.terms);
+      ..write(obj.terms)
+      ..writeByte(13)
+      ..write(obj.termsAndConditions);
   }
 
   @override
@@ -143,13 +146,14 @@ class LineItemAdapter extends TypeAdapter<LineItem> {
       quantity: fields[1] as double,
       unitPrice: fields[2] as double,
       total: fields[3] as double,
+      unit: fields[4] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, LineItem obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.description)
       ..writeByte(1)
@@ -157,7 +161,9 @@ class LineItemAdapter extends TypeAdapter<LineItem> {
       ..writeByte(2)
       ..write(obj.unitPrice)
       ..writeByte(3)
-      ..write(obj.total);
+      ..write(obj.total)
+      ..writeByte(4)
+      ..write(obj.unit);
   }
 
   @override

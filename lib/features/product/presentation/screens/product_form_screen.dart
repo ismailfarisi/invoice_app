@@ -72,58 +72,65 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            _FormSection(
-              title: 'Item Details',
-              icon: Icons.inventory_2_outlined,
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    prefixIcon: Icon(Icons.drive_file_rename_outline),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  _FormSection(
+                    title: 'Item Details',
+                    icon: Icons.inventory_2_outlined,
+                    children: [
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Name',
+                          prefixIcon: Icon(Icons.drive_file_rename_outline),
+                        ),
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _priceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Unit Price',
+                          prefixIcon: Icon(Icons.sell_outlined),
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _skuController,
+                        decoration: const InputDecoration(
+                          labelText: 'SKU (Optional)',
+                          prefixIcon: Icon(Icons.tag),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Description (Optional)',
+                          prefixIcon: Icon(Icons.description_outlined),
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
                   ),
-                  validator: (val) =>
-                      val == null || val.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Unit Price',
-                    prefixIcon: Icon(Icons.sell_outlined),
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  validator: (val) =>
-                      val == null || val.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _skuController,
-                  decoration: const InputDecoration(
-                    labelText: 'SKU (Optional)',
-                    prefixIcon: Icon(Icons.tag),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
-                    prefixIcon: Icon(Icons.description_outlined),
-                  ),
-                  maxLines: 3,
-                ),
-              ],
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );
@@ -169,9 +176,15 @@ class _FormSection extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color:
+                Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.grey.shade100),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
           ),
           child: Column(children: children),
         ),

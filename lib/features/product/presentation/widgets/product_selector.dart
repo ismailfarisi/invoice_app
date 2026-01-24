@@ -14,26 +14,28 @@ class ProductSelector extends StatelessWidget {
       valueListenable: Hive.box<Product>('products').listenable(),
       builder: (context, Box<Product> box, _) {
         final products = box.values.toList();
-        
+
         return DropdownButtonFormField<Product>(
+          isExpanded: true,
           decoration: InputDecoration(
             labelText: 'Select Product/Service',
             suffixIcon: IconButton(
               icon: const Icon(Icons.add_circle_outline),
-               onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ProductFormScreen(),
-                    ),
-                  );
-               },
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProductFormScreen()),
+                );
+              },
             ),
           ),
           items: products.map((product) {
             return DropdownMenuItem(
               value: product,
-              child: Text('${product.name} (\$${product.unitPrice})'),
+              child: Text(
+                '${product.name} (\$${product.unitPrice})',
+                overflow: TextOverflow.ellipsis,
+              ),
             );
           }).toList(),
           onChanged: onChanged,

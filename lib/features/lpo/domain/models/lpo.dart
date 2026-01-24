@@ -1,34 +1,34 @@
 import 'package:hive/hive.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 
-part 'quotation.g.dart';
+part 'lpo.g.dart';
 
-@HiveType(typeId: 6)
-enum QuotationStatus {
+@HiveType(typeId: 8)
+enum LpoStatus {
   @HiveField(0)
   draft,
   @HiveField(1)
   sent,
   @HiveField(2)
-  accepted,
+  approved,
   @HiveField(3)
   rejected,
   @HiveField(4)
-  expired,
+  completed,
 }
 
-@HiveType(typeId: 7)
-class Quotation {
+@HiveType(typeId: 9)
+class Lpo {
   @HiveField(0)
   final String id;
   @HiveField(1)
-  final String quotationNumber;
+  final String lpoNumber;
   @HiveField(2)
   final DateTime date;
   @HiveField(3)
-  final DateTime? validUntil;
+  final DateTime? expectedDeliveryDate;
   @HiveField(4)
-  final Client client;
+  final Client vendor; // Reusing Client model for Vendor
   @HiveField(5)
   final List<LineItem> items;
   @HiveField(6)
@@ -40,24 +40,20 @@ class Quotation {
   @HiveField(9)
   final double total;
   @HiveField(10)
-  final QuotationStatus status;
+  final LpoStatus status;
   @HiveField(11)
   final String? notes;
   @HiveField(12)
   final String? terms;
   @HiveField(13)
-  final String? enquiryRef;
-  @HiveField(14)
-  final String? project;
-  @HiveField(15)
   final String? termsAndConditions;
 
-  Quotation({
+  Lpo({
     required this.id,
-    required this.quotationNumber,
+    required this.lpoNumber,
     required this.date,
-    this.validUntil,
-    required this.client,
+    this.expectedDeliveryDate,
+    required this.vendor,
     required this.items,
     required this.subtotal,
     required this.taxAmount,
@@ -66,27 +62,6 @@ class Quotation {
     required this.status,
     this.notes,
     this.terms,
-    this.enquiryRef,
-    this.project,
     this.termsAndConditions,
   });
-
-  // Helper to convert to Invoice
-  Invoice toInvoice({String? invoiceNumber}) {
-    return Invoice(
-      id: id, // Or generate new one
-      invoiceNumber: invoiceNumber ?? 'INV-FROM-$quotationNumber',
-      date: DateTime.now(),
-      client: client,
-      items: items,
-      subtotal: subtotal,
-      taxAmount: taxAmount,
-      discount: discount,
-      total: total,
-      status: InvoiceStatus.draft,
-      notes: notes,
-      terms: terms,
-      termsAndConditions: termsAndConditions,
-    );
-  }
 }

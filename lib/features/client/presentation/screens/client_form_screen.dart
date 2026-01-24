@@ -79,83 +79,90 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            _FormSection(
-              title: 'Basic Information',
-              icon: Icons.business_outlined,
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Company Name',
-                    prefixIcon: Icon(Icons.business),
-                    hintText: 'Enter company name',
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  _FormSection(
+                    title: 'Basic Information',
+                    icon: Icons.business_outlined,
+                    children: [
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Company Name',
+                          prefixIcon: Icon(Icons.business),
+                          hintText: 'Enter company name',
+                        ),
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _taxIdController,
+                        decoration: const InputDecoration(
+                          labelText: 'Tax ID / VAT',
+                          prefixIcon: Icon(Icons.tag),
+                          hintText: 'Optional',
+                        ),
+                      ),
+                    ],
                   ),
-                  validator: (val) =>
-                      val == null || val.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _taxIdController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tax ID / VAT',
-                    prefixIcon: Icon(Icons.tag),
-                    hintText: 'Optional',
+                  const SizedBox(height: 24),
+                  _FormSection(
+                    title: 'Contact Details',
+                    icon: Icons.contact_mail_outlined,
+                    children: [
+                      TextFormField(
+                        controller: _contactPersonController,
+                        decoration: const InputDecoration(
+                          labelText: 'Contact Person',
+                          prefixIcon: Icon(Icons.person_outline),
+                          hintText: 'John Doe',
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.email_outlined),
+                          hintText: 'company@example.com',
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _phoneController,
+                        decoration: const InputDecoration(
+                          labelText: 'Phone',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _addressController,
+                        decoration: const InputDecoration(
+                          labelText: 'Address',
+                          prefixIcon: Icon(Icons.location_on_outlined),
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
-            const SizedBox(height: 24),
-            _FormSection(
-              title: 'Contact Details',
-              icon: Icons.contact_mail_outlined,
-              children: [
-                TextFormField(
-                  controller: _contactPersonController,
-                  decoration: const InputDecoration(
-                    labelText: 'Contact Person',
-                    prefixIcon: Icon(Icons.person_outline),
-                    hintText: 'John Doe',
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    hintText: 'company@example.com',
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (val) =>
-                      val == null || val.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                  ),
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _addressController,
-                  decoration: const InputDecoration(
-                    labelText: 'Address',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
-                  maxLines: 3,
-                ),
-              ],
-            ),
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );
@@ -201,9 +208,15 @@ class _FormSection extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color:
+                Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.grey.shade100),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
           ),
           child: Column(children: children),
         ),

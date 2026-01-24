@@ -1,52 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
-import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dart';
-import 'package:flutter_invoice_app/features/invoice/presentation/screens/pdf_preview_screen.dart';
-import 'package:flutter_invoice_app/features/client/presentation/widgets/client_selector.dart'; // Add import
+import 'package:flutter_invoice_app/features/proforma/domain/models/proforma.dart';
+import 'package:flutter_invoice_app/features/proforma/presentation/providers/proforma_provider.dart';
+import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart'; // For LineItem reuse
+import 'package:flutter_invoice_app/features/client/presentation/widgets/client_selector.dart';
 import 'package:flutter_invoice_app/features/client/presentation/screens/client_form_screen.dart';
-import 'package:flutter_invoice_app/features/product/presentation/widgets/product_selector.dart'; // Add import
+import 'package:flutter_invoice_app/features/product/presentation/widgets/product_selector.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_invoice_app/features/proforma/presentation/screens/proforma_pdf_preview_screen.dart';
 
-class InvoiceFormScreen extends ConsumerStatefulWidget {
-  final Invoice? invoice;
-  const InvoiceFormScreen({super.key, this.invoice});
+class ProformaFormScreen extends ConsumerStatefulWidget {
+  final ProformaInvoice? proforma;
+  const ProformaFormScreen({super.key, this.proforma});
 
   @override
-  ConsumerState<InvoiceFormScreen> createState() => _InvoiceFormScreenState();
+  ConsumerState<ProformaFormScreen> createState() => _ProformaFormScreenState();
 }
 
-class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
+class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  Client? _selectedClient; // Changed from controller
-  late TextEditingController _invoiceNumberController;
+  Client? _selectedClient;
+  late TextEditingController _proformaNumberController;
   late List<LineItem> _items;
   late DateTime _date;
-  late InvoiceStatus _status;
+  late ProformaStatus _status;
   late TextEditingController _termsAndConditionsController;
 
   @override
   void initState() {
     super.initState();
-    _selectedClient =
-        widget.invoice?.client; // Initialize from existing invoice
-    _invoiceNumberController = TextEditingController(
+    _selectedClient = widget.proforma?.client;
+    _proformaNumberController = TextEditingController(
       text:
-          widget.invoice?.invoiceNumber ??
-          'INV-${DateTime.now().millisecondsSinceEpoch}',
+          widget.proforma?.proformaNumber ??
+          'PF-${DateTime.now().millisecondsSinceEpoch}',
     );
-    _items = widget.invoice?.items.toList() ?? [];
-    _date = widget.invoice?.date ?? DateTime.now();
-    _status = widget.invoice?.status ?? InvoiceStatus.draft;
+    _items = widget.proforma?.items.toList() ?? [];
+    _date = widget.proforma?.date ?? DateTime.now();
+    _status = widget.proforma?.status ?? ProformaStatus.draft;
     _termsAndConditionsController = TextEditingController(
-      text: widget.invoice?.termsAndConditions,
+      text: widget.proforma?.termsAndConditions,
     );
   }
 
   @override
   void dispose() {
-    _invoiceNumberController.dispose();
+    _proformaNumberController.dispose();
     _termsAndConditionsController.dispose();
     super.dispose();
   }
@@ -75,6 +75,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
 
   void _save() {
     if (_formKey.currentState!.validate()) {
+      if (_selectedClient == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Please select a client')));
+        return;
+      }
       if (_items.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please add at least one item')),
@@ -83,14 +89,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       }
 
       final subtotal = _subtotal;
-      final tax = subtotal * 0.1; // Default 10% tax for now
+      final tax = subtotal * 0.05; // 5% VAT
       final total = subtotal + tax;
 
-      final invoice = Invoice(
-        id: widget.invoice?.id ?? const Uuid().v4(),
-        invoiceNumber: _invoiceNumberController.text,
+      final proforma = ProformaInvoice(
+        id: widget.proforma?.id ?? const Uuid().v4(),
+        proformaNumber: _proformaNumberController.text,
         date: _date,
-        client: _selectedClient!, // Use selected object
+        client: _selectedClient!,
         items: _items,
         subtotal: subtotal,
         taxAmount: tax,
@@ -101,7 +107,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         termsAndConditions: _termsAndConditionsController.text,
       );
 
-      ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
+      ref.read(proformaListProvider.notifier).saveProforma(proforma);
       Navigator.pop(context);
     }
   }
@@ -114,28 +120,24 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       appBar: AppBar(
         title: Text(
-          widget.invoice == null ? 'New Invoice' : 'Edit Invoice',
+          widget.proforma == null ? 'New Proforma Invoice' : 'Edit Proforma',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            onPressed: () async {
-              if (widget.invoice != null) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PdfPreviewScreen(invoice: widget.invoice!),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please save the invoice first'),
-                  ),
-                );
-              }
-            },
-          ),
+          if (widget.proforma != null)
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: () {
+                if (widget.proforma != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ProformaPdfPreviewScreen(proforma: widget.proforma!),
+                    ),
+                  );
+                }
+              },
+            ),
           const SizedBox(width: 8),
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -191,28 +193,28 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Invoice Details Section
+                  // Proforma Details Section
                   _FormSection(
-                    title: 'Invoice Info',
+                    title: 'Proforma Info',
                     icon: Icons.info_outline,
                     children: [
                       TextFormField(
-                        controller: _invoiceNumberController,
+                        controller: _proformaNumberController,
                         decoration: const InputDecoration(
-                          labelText: 'Invoice Number',
+                          labelText: 'Proforma Number',
                           prefixIcon: Icon(Icons.numbers),
                         ),
                         validator: (val) =>
                             val == null || val.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 20),
-                      DropdownButtonFormField<InvoiceStatus>(
+                      DropdownButtonFormField<ProformaStatus>(
                         initialValue: _status,
                         decoration: const InputDecoration(
                           labelText: 'Status',
                           prefixIcon: Icon(Icons.label_important_outline),
                         ),
-                        items: InvoiceStatus.values.map((status) {
+                        items: ProformaStatus.values.map((status) {
                           return DropdownMenuItem(
                             value: status,
                             child: Text(status.name.toUpperCase()),
@@ -235,7 +237,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         controller: _termsAndConditionsController,
                         decoration: const InputDecoration(
                           labelText: 'Terms & Conditions',
-                          hintText: 'Enter invoice terms and conditions...',
+                          hintText: 'Enter proforma terms and conditions...',
                         ),
                         maxLines: 4,
                       ),
@@ -295,7 +297,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                       children: [
                         _TotalRow(label: 'Subtotal', value: _subtotal),
                         const SizedBox(height: 8),
-                        _TotalRow(label: 'Tax (10%)', value: _subtotal * 0.1),
+                        _TotalRow(label: 'Tax (5%)', value: _subtotal * 0.05),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 12),
                           child: Divider(),
@@ -311,7 +313,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                               ),
                             ),
                             Text(
-                              CurrencyFormatter.format(_subtotal * 1.1),
+                              CurrencyFormatter.format(_subtotal * 1.05),
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w900,

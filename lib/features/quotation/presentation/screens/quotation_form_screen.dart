@@ -27,6 +27,10 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
   late List<LineItem> _items;
   late DateTime _date;
   late QuotationStatus _status;
+  late TextEditingController _projectController;
+  late TextEditingController _enquiryRefController;
+  late TextEditingController _termsController;
+  late TextEditingController _termsAndConditionsController;
 
   @override
   void initState() {
@@ -40,6 +44,25 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     _items = widget.quotation?.items.toList() ?? [];
     _date = widget.quotation?.date ?? DateTime.now();
     _status = widget.quotation?.status ?? QuotationStatus.draft;
+    _projectController = TextEditingController(text: widget.quotation?.project);
+    _enquiryRefController = TextEditingController(
+      text: widget.quotation?.enquiryRef,
+    );
+    _termsController = TextEditingController(text: widget.quotation?.terms);
+    _termsAndConditionsController = TextEditingController(
+      text: widget.quotation?.termsAndConditions,
+    );
+  }
+
+  @override
+  void dispose() {
+    _quotationNumberController.dispose();
+    _projectController.dispose();
+    _enquiryRefController.dispose();
+    _termsController.dispose();
+    _termsAndConditionsController.dispose();
+
+    super.dispose();
   }
 
   void _addItem() {
@@ -88,6 +111,10 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
         discount: 0,
         total: total,
         status: _status,
+        project: _projectController.text,
+        enquiryRef: _enquiryRefController.text,
+        terms: _termsController.text,
+        termsAndConditions: _termsAndConditionsController.text,
       );
 
       ref.read(quotationRepositoryProvider).saveQuotation(quotation);
@@ -203,6 +230,22 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                       val == null || val.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 20),
+                TextFormField(
+                  controller: _projectController,
+                  decoration: const InputDecoration(
+                    labelText: 'Project',
+                    prefixIcon: Icon(Icons.work_outline),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _enquiryRefController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enquiry Ref',
+                    prefixIcon: Icon(Icons.bookmark_border),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 DropdownButtonFormField<QuotationStatus>(
                   initialValue: _status,
                   decoration: const InputDecoration(
@@ -221,6 +264,33 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 24),
+
+            // Terms Section
+            _FormSection(
+              title: 'Terms & Conditions',
+              icon: Icons.description_outlined,
+              children: [
+                TextFormField(
+                  controller: _termsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Terms',
+                    hintText: 'Enter payment terms, delivery terms, etc.',
+                  ),
+                  maxLines: 4,
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _termsAndConditionsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Terms & Conditions',
+                    hintText: 'Enter quotation terms and conditions...',
+                  ),
+                  maxLines: 4,
+                ),
+              ],
+            ),
+
             const SizedBox(height: 32),
 
             // Line Items Section
@@ -347,9 +417,13 @@ class _FormSection extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.grey.shade100),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
           ),
           child: Column(children: children),
         ),
@@ -376,9 +450,13 @@ class _ItemCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Column(
         children: [
@@ -467,14 +545,19 @@ class _ItemCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     children: [
-                      const Text(
+                      Text(
                         'Total',
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       Text(
                         item.total.toStringAsFixed(2),
@@ -503,7 +586,12 @@ class _TotalRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: Colors.grey.shade600)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         Text(
           CurrencyFormatter.format(value),
           style: const TextStyle(fontWeight: FontWeight.w600),

@@ -1,71 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dart';
-import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
+import 'package:flutter_invoice_app/features/proforma/presentation/providers/proforma_provider.dart';
+import 'package:flutter_invoice_app/features/proforma/domain/models/proforma.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
-import 'package:flutter_invoice_app/features/invoice/presentation/screens/invoice_form_screen.dart'; // Add import
+import 'package:flutter_invoice_app/features/proforma/presentation/screens/proforma_form_screen.dart';
 import 'package:intl/intl.dart';
 
-class InvoiceListScreen extends ConsumerWidget {
-  const InvoiceListScreen({super.key});
+class ProformaListScreen extends ConsumerWidget {
+  const ProformaListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(invoiceRepositoryProvider);
-    final invoices = repo.getAllInvoices();
+    final proformaAsyncValue = ref.watch(proformaListProvider);
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Invoices'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'All'),
-              Tab(text: 'Paid'),
-              Tab(text: 'Pending'),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Proforma Invoices')),
+      body: proformaAsyncValue.when(
+        data: (proformas) => _ProformaList(proformas: proformas),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ProformaFormScreen()));
+        },
+        label: const Text(
+          'New Proforma',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        body: TabBarView(
-          children: [
-            _InvoiceList(invoices: invoices),
-            _InvoiceList(
-              invoices: invoices
-                  .where((i) => i.status == InvoiceStatus.paid)
-                  .toList(),
-            ),
-            _InvoiceList(
-              invoices: invoices
-                  .where((i) => i.status != InvoiceStatus.paid)
-                  .toList(),
-            ),
-          ],
-        ),
+        icon: const Icon(Icons.add),
       ),
     );
   }
 }
 
-class _InvoiceList extends StatelessWidget {
-  final List<Invoice> invoices;
-  const _InvoiceList({required this.invoices});
+class _ProformaList extends StatelessWidget {
+  final List<ProformaInvoice> proformas;
+  const _ProformaList({required this.proformas});
 
   @override
   Widget build(BuildContext context) {
-    if (invoices.isEmpty) {
+    if (proformas.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.receipt_long_outlined,
+              Icons.receipt_outlined, // Different icon
               size: 64,
               color: Colors.grey.shade300,
             ),
             const SizedBox(height: 16),
             Text(
-              'No invoices found',
+              'No proforma invoices found',
               style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
             ),
           ],
@@ -74,22 +63,22 @@ class _InvoiceList extends StatelessWidget {
     }
     return ListView.builder(
       padding: const EdgeInsets.all(24),
-      itemCount: invoices.length,
+      itemCount: proformas.length,
       itemBuilder: (context, index) {
-        final invoice = invoices[index];
+        final proforma = proformas[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: _InvoiceCard(invoice: invoice),
+          child: _ProformaCard(proforma: proforma),
         );
       },
     );
   }
 }
 
-class _InvoiceCard extends StatelessWidget {
-  final Invoice invoice;
+class _ProformaCard extends StatelessWidget {
+  final ProformaInvoice proforma;
 
-  const _InvoiceCard({required this.invoice});
+  const _ProformaCard({required this.proforma});
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +86,7 @@ class _InvoiceCard extends StatelessWidget {
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => InvoiceFormScreen(invoice: invoice),
+            builder: (_) => ProformaFormScreen(proforma: proforma),
           ),
         );
       },
@@ -128,12 +117,12 @@ class _InvoiceCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
-                ).colorScheme.primary.withValues(alpha: 0.05),
+                ).colorScheme.tertiary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
-                Icons.description_outlined,
-                color: Theme.of(context).colorScheme.primary,
+                Icons.assignment_outlined,
+                color: Theme.of(context).colorScheme.tertiary,
               ),
             ),
             const SizedBox(width: 16),
@@ -142,7 +131,7 @@ class _InvoiceCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    invoice.client.name,
+                    proforma.client.name,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 17,
@@ -150,7 +139,7 @@ class _InvoiceCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${invoice.invoiceNumber} • ${DateFormat.yMMMd().format(invoice.date)}',
+                    '${proforma.proformaNumber} • ${DateFormat.yMMMd().format(proforma.date)}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,
@@ -163,14 +152,14 @@ class _InvoiceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  CurrencyFormatter.format(invoice.total),
+                  CurrencyFormatter.format(proforma.total),
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                   ),
                 ),
                 const SizedBox(height: 6),
-                _StatusBadge(status: invoice.status),
+                _StatusBadge(status: proforma.status),
               ],
             ),
           ],
@@ -181,13 +170,31 @@ class _InvoiceCard extends StatelessWidget {
 }
 
 class _StatusBadge extends StatelessWidget {
-  final InvoiceStatus status;
+  final ProformaStatus status;
 
   const _StatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    final color = status == InvoiceStatus.paid ? Colors.green : Colors.orange;
+    Color color;
+    switch (status) {
+      case ProformaStatus.draft:
+        color = Colors.grey;
+        break;
+      case ProformaStatus.sent:
+        color = Colors.blue;
+        break;
+      case ProformaStatus.accepted:
+        color = Colors.green;
+        break;
+      case ProformaStatus.rejected:
+        color = Colors.red;
+        break;
+      case ProformaStatus.converted:
+        color = Colors.purple;
+        break;
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

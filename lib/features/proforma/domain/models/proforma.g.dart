@@ -1,24 +1,24 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'quotation.dart';
+part of 'proforma.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class QuotationAdapter extends TypeAdapter<Quotation> {
+class ProformaInvoiceAdapter extends TypeAdapter<ProformaInvoice> {
   @override
-  final int typeId = 7;
+  final int typeId = 11;
 
   @override
-  Quotation read(BinaryReader reader) {
+  ProformaInvoice read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Quotation(
+    return ProformaInvoice(
       id: fields[0] as String,
-      quotationNumber: fields[1] as String,
+      proformaNumber: fields[1] as String,
       date: fields[2] as DateTime,
       validUntil: fields[3] as DateTime?,
       client: fields[4] as Client,
@@ -27,23 +27,21 @@ class QuotationAdapter extends TypeAdapter<Quotation> {
       taxAmount: fields[7] as double,
       discount: fields[8] as double,
       total: fields[9] as double,
-      status: fields[10] as QuotationStatus,
+      status: fields[10] as ProformaStatus,
       notes: fields[11] as String?,
       terms: fields[12] as String?,
-      enquiryRef: fields[13] as String?,
-      project: fields[14] as String?,
-      termsAndConditions: fields[15] as String?,
+      termsAndConditions: fields[13] as String?,
     );
   }
 
   @override
-  void write(BinaryWriter writer, Quotation obj) {
+  void write(BinaryWriter writer, ProformaInvoice obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.quotationNumber)
+      ..write(obj.proformaNumber)
       ..writeByte(2)
       ..write(obj.date)
       ..writeByte(3)
@@ -67,10 +65,6 @@ class QuotationAdapter extends TypeAdapter<Quotation> {
       ..writeByte(12)
       ..write(obj.terms)
       ..writeByte(13)
-      ..write(obj.enquiryRef)
-      ..writeByte(14)
-      ..write(obj.project)
-      ..writeByte(15)
       ..write(obj.termsAndConditions);
   }
 
@@ -80,49 +74,49 @@ class QuotationAdapter extends TypeAdapter<Quotation> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is QuotationAdapter &&
+      other is ProformaInvoiceAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
 
-class QuotationStatusAdapter extends TypeAdapter<QuotationStatus> {
+class ProformaStatusAdapter extends TypeAdapter<ProformaStatus> {
   @override
-  final int typeId = 6;
+  final int typeId = 10;
 
   @override
-  QuotationStatus read(BinaryReader reader) {
+  ProformaStatus read(BinaryReader reader) {
     switch (reader.readByte()) {
       case 0:
-        return QuotationStatus.draft;
+        return ProformaStatus.draft;
       case 1:
-        return QuotationStatus.sent;
+        return ProformaStatus.sent;
       case 2:
-        return QuotationStatus.accepted;
+        return ProformaStatus.accepted;
       case 3:
-        return QuotationStatus.rejected;
+        return ProformaStatus.rejected;
       case 4:
-        return QuotationStatus.expired;
+        return ProformaStatus.converted;
       default:
-        return QuotationStatus.draft;
+        return ProformaStatus.draft;
     }
   }
 
   @override
-  void write(BinaryWriter writer, QuotationStatus obj) {
+  void write(BinaryWriter writer, ProformaStatus obj) {
     switch (obj) {
-      case QuotationStatus.draft:
+      case ProformaStatus.draft:
         writer.writeByte(0);
         break;
-      case QuotationStatus.sent:
+      case ProformaStatus.sent:
         writer.writeByte(1);
         break;
-      case QuotationStatus.accepted:
+      case ProformaStatus.accepted:
         writer.writeByte(2);
         break;
-      case QuotationStatus.rejected:
+      case ProformaStatus.rejected:
         writer.writeByte(3);
         break;
-      case QuotationStatus.expired:
+      case ProformaStatus.converted:
         writer.writeByte(4);
         break;
     }
@@ -134,7 +128,7 @@ class QuotationStatusAdapter extends TypeAdapter<QuotationStatus> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is QuotationStatusAdapter &&
+      other is ProformaStatusAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

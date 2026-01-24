@@ -30,6 +30,8 @@ class Invoice {
   final String? notes;
   @HiveField(12)
   final String? terms;
+  @HiveField(13)
+  final String? termsAndConditions;
 
   Invoice({
     required this.id,
@@ -45,6 +47,7 @@ class Invoice {
     required this.status,
     this.notes,
     this.terms,
+    this.termsAndConditions,
   });
 }
 
@@ -100,11 +103,14 @@ class LineItem {
   final double unitPrice;
   @HiveField(3)
   final double total;
+  @HiveField(4)
+  final String? unit;
 
   LineItem({
     required this.description,
     required this.quantity,
     required this.unitPrice,
     required this.total,
+    this.unit,
   });
 }
