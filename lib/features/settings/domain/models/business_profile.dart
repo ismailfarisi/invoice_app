@@ -20,6 +20,10 @@ class BusinessProfile {
   final String currency;
   @HiveField(7)
   final String? bankDetails;
+  @HiveField(8)
+  final String? website;
+  @HiveField(9)
+  final String? mobile;
 
   BusinessProfile({
     required this.companyName,
@@ -30,5 +34,7 @@ class BusinessProfile {
     this.logoPath,
     this.currency = 'USD',
     this.bankDetails,
+    this.website,
+    this.mobile,
   });
 }

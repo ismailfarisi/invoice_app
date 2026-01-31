@@ -25,6 +25,8 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   late DateTime _date;
   late InvoiceStatus _status;
   late TextEditingController _termsAndConditionsController;
+  late TextEditingController _salesPersonController;
+  bool _isVatApplicable = true;
 
   @override
   void initState() {
@@ -42,12 +44,17 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     _termsAndConditionsController = TextEditingController(
       text: widget.invoice?.termsAndConditions,
     );
+    _salesPersonController = TextEditingController(
+      text: widget.invoice?.salesPerson,
+    );
+    _isVatApplicable = widget.invoice?.isVatApplicable ?? true;
   }
 
   @override
   void dispose() {
     _invoiceNumberController.dispose();
     _termsAndConditionsController.dispose();
+    _salesPersonController.dispose();
     super.dispose();
   }
 
@@ -73,7 +80,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
 
   double get _subtotal => _items.fold(0, (sum, item) => sum + item.total);
 
-  void _save() {
+  Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
       if (_items.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +90,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       }
 
       final subtotal = _subtotal;
-      final tax = subtotal * 0.1; // Default 10% tax for now
+      final tax = _isVatApplicable ? subtotal * 0.1 : 0.0;
       final total = subtotal + tax;
 
       final invoice = Invoice(
@@ -99,10 +106,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
 
         status: _status,
         termsAndConditions: _termsAndConditionsController.text,
+        salesPerson: _salesPersonController.text,
+        isVatApplicable: _isVatApplicable,
       );
 
-      ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
-      Navigator.pop(context);
+      await ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
+      if (context.mounted) Navigator.pop(context);
     }
   }
 
@@ -206,6 +215,24 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                             val == null || val.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _salesPersonController,
+                        decoration: const InputDecoration(
+                          labelText: 'Sales Person',
+                          prefixIcon: Icon(Icons.person),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SwitchListTile(
+                        title: const Text('VAT Applicable'),
+                        value: _isVatApplicable,
+                        onChanged: (val) {
+                          setState(() {
+                            _isVatApplicable = val;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
                       DropdownButtonFormField<InvoiceStatus>(
                         initialValue: _status,
                         decoration: const InputDecoration(
@@ -295,11 +322,13 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                       children: [
                         _TotalRow(label: 'Subtotal', value: _subtotal),
                         const SizedBox(height: 8),
-                        _TotalRow(label: 'Tax (10%)', value: _subtotal * 0.1),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Divider(),
-                        ),
+                        if (_isVatApplicable) ...[
+                          _TotalRow(label: 'Tax (10%)', value: _subtotal * 0.1),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(),
+                          ),
+                        ],
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -311,7 +340,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                               ),
                             ),
                             Text(
-                              CurrencyFormatter.format(_subtotal * 1.1),
+                              CurrencyFormatter.format(
+                                _isVatApplicable ? _subtotal * 1.1 : _subtotal,
+                              ),
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w900,

@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/client/presentation/screens/client_list_screen.dart';
-import 'package:flutter_invoice_app/features/lpo/presentation/screens/lpo_list_screen.dart'; // Add import
+import 'package:flutter_invoice_app/features/lpo/presentation/screens/lpo_list_screen.dart';
 import 'package:flutter_invoice_app/features/product/presentation/screens/product_list_screen.dart';
 import 'package:flutter_invoice_app/features/proforma/presentation/screens/proforma_list_screen.dart';
 import 'package:flutter_invoice_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:flutter_invoice_app/features/invoice/presentation/screens/generic_pdf_preview_screen.dart';
+import 'package:flutter_invoice_app/features/invoice/domain/services/pdf_service.dart';
+import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
 
-class MobileMenu extends StatelessWidget {
+class MobileMenu extends ConsumerWidget {
   const MobileMenu({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Theme.of(
         context,
@@ -61,6 +65,27 @@ class MobileMenu extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (_) => const ProformaListScreen()),
             ),
+          ),
+          const SizedBox(height: 16),
+          _MenuTile(
+            icon: Icons.description_outlined,
+            title: 'Letter Head',
+            subtitle: 'Generate and download letterhead',
+            onTap: () {
+              final profile = ref
+                  .read(businessProfileRepositoryProvider)
+                  .getProfile();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GenericPdfPreviewScreen(
+                    title: 'Letter Head Preview',
+                    buildEvent: (format) =>
+                        PdfService().generateLetterHead(profile: profile),
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
           _MenuTile(

@@ -1,0 +1,10 @@
+--- Debug Start ---
+PASS: Closure: (double) => String from Function 'amountStr': static.(amount) -> "UAE Dirham Ten and Fifty Fils Only"
+PASS: Closure: (double) => String from Function 'amountStr': static.(amount) -> "UAE Dirham Zero Only"
+PASS: Closure: (double) => String from Function 'amountStr': static.(amount) -> "UAE Dirham One Only"
+PASS: Closure: (double) => String from Function 'amountStr': static.(amount) -> "UAE Dirham Fifteen Only"
+PASS: Closure: (double) => String from Function 'amountStr': static.(amount) -> "UAE Dirham Twenty One Only"
+PASS: Closure: (double) => String from Function 'amountStr': static.(amount) -> "UAE Dirham One Hundred and Five Only"
+PASS: Closure: (double) => String from Function 'amountStr': static.(amount) -> "UAE Dirham One Thousand Two Hundred and Thirty Four Only"
+PASS: Closure: (double) => String from Function 'amountStr': static.(amount) -> "UAE Dirham One Hundred and Ninety Nine Fils Only"
+--- Debug End ---

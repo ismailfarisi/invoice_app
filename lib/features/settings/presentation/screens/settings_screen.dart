@@ -20,6 +20,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _addressController;
   late TextEditingController _taxIdController;
   late TextEditingController _bankDetailsController;
+  late TextEditingController _websiteController;
+  late TextEditingController _mobileController;
   String? _logoPath;
 
   @override
@@ -34,6 +36,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _bankDetailsController = TextEditingController(
       text: profile?.bankDetails ?? '',
     );
+    _websiteController = TextEditingController(text: profile?.website ?? '');
+    _mobileController = TextEditingController(text: profile?.mobile ?? '');
     _logoPath = profile?.logoPath;
   }
 
@@ -57,6 +61,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         address: _addressController.text,
         taxId: _taxIdController.text,
         bankDetails: _bankDetailsController.text,
+        website: _websiteController.text,
+        mobile: _mobileController.text,
         logoPath: _logoPath,
       );
 
@@ -137,6 +143,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Company Phone',
                           prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _mobileController,
+                        decoration: const InputDecoration(
+                          labelText: 'Company Mobile',
+                          prefixIcon: Icon(Icons.smartphone),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _websiteController,
+                        decoration: const InputDecoration(
+                          labelText: 'Website',
+                          prefixIcon: Icon(Icons.language),
                         ),
                       ),
                       const SizedBox(height: 20),

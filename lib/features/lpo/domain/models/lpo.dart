@@ -47,6 +47,10 @@ class Lpo {
   final String? terms;
   @HiveField(13)
   final String? termsAndConditions;
+  @HiveField(14)
+  final String? salesPerson;
+  @HiveField(15)
+  final bool? isVatApplicable;
 
   Lpo({
     required this.id,
@@ -63,5 +67,7 @@ class Lpo {
     this.notes,
     this.terms,
     this.termsAndConditions,
+    this.salesPerson,
+    this.isVatApplicable = true,
   });
 }

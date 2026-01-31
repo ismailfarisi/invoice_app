@@ -51,6 +51,12 @@ class Quotation {
   final String? project;
   @HiveField(15)
   final String? termsAndConditions;
+  @HiveField(16)
+  final String? salesPerson;
+  @HiveField(
+    17,
+  ) // Keeping original index to avoid conflict with @HiveField(15) for termsAndConditions
+  final bool? isVatApplicable;
 
   Quotation({
     required this.id,
@@ -69,6 +75,8 @@ class Quotation {
     this.enquiryRef,
     this.project,
     this.termsAndConditions,
+    this.salesPerson,
+    this.isVatApplicable = true,
   });
 
   // Helper to convert to Invoice
@@ -87,6 +95,8 @@ class Quotation {
       notes: notes,
       terms: terms,
       termsAndConditions: termsAndConditions,
+      salesPerson: salesPerson,
+      isVatApplicable: isVatApplicable,
     );
   }
 }

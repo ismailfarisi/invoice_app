@@ -9,6 +9,8 @@ import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
 import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
 import 'package:flutter_invoice_app/features/proforma/domain/models/proforma.dart';
 import 'package:intl/intl.dart';
+import 'package:vector_math/vector_math_64.dart';
+import 'package:flutter_invoice_app/core/utils/number_to_words.dart';
 
 class PdfService {
   pw.PageTheme _buildPageTheme(
@@ -30,6 +32,33 @@ class PdfService {
         }
         return pw.Container();
       },
+    );
+  }
+
+  pw.Widget _buildCustomDivider() {
+    return pw.Row(
+      children: [
+        pw.Expanded(
+          flex: 12,
+          child: pw.Container(height: 4, color: PdfColors.blue900),
+        ),
+        pw.SizedBox(width: 5),
+        pw.Expanded(
+          flex: 3,
+          child: pw.Transform(
+            transform: Matrix4.skewX(-0.3),
+            child: pw.Container(height: 4, color: PdfColors.blue),
+          ),
+        ),
+        pw.SizedBox(width: 5),
+        pw.Expanded(
+          flex: 6,
+          child: pw.Transform(
+            transform: Matrix4.skewX(-0.3),
+            child: pw.Container(height: 4, color: PdfColors.cyan),
+          ),
+        ),
+      ],
     );
   }
 
@@ -162,6 +191,29 @@ class PdfService {
     return pdf.save();
   }
 
+  Future<Uint8List> generateLetterHead({BusinessProfile? profile}) async {
+    final pdf = pw.Document();
+
+    final image = profile?.logoPath != null
+        ? pw.MemoryImage(File(profile!.logoPath!).readAsBytesSync())
+        : null;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageTheme: _buildPageTheme(profile, image),
+        build: (pw.Context context) {
+          return [
+            _buildLetterHeadHeader(profile, image),
+            pw.Spacer(),
+            _buildLetterHeadFooter(profile),
+          ];
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
   pw.Widget _buildHeader(
     Invoice invoice,
     BusinessProfile? profile,
@@ -182,8 +234,7 @@ class PdfService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      profile?.companyName.toUpperCase() ??
-                          'OCEAN POWER TRADING LLC',
+                      profile?.companyName.toUpperCase() ?? '',
                       style: pw.TextStyle(
                         fontSize: 16,
                         fontWeight: pw.FontWeight.bold,
@@ -194,7 +245,7 @@ class PdfService {
                       pw.Container(
                         width: 200,
                         child: pw.Text(
-                          profile!.address!,
+                          profile?.address ?? '',
                           style: const pw.TextStyle(fontSize: 9),
                         ),
                       ),
@@ -220,7 +271,8 @@ class PdfService {
           ],
         ),
         pw.SizedBox(height: 5),
-        pw.Container(height: 2, color: PdfColors.blue900),
+        pw.SizedBox(height: 5),
+        _buildCustomDivider(),
         pw.Container(
           width: double.infinity,
           alignment: pw.Alignment.center,
@@ -230,7 +282,7 @@ class PdfService {
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
           ),
         ),
-        pw.Container(height: 2, color: PdfColors.blue900),
+        _buildCustomDivider(),
       ],
     );
   }
@@ -402,6 +454,7 @@ class PdfService {
   }
 
   pw.Widget _buildItemsTable(Invoice invoice) {
+    final isVat = invoice.isVatApplicable ?? true;
     return pw.Container(
       decoration: pw.BoxDecoration(
         border: pw.Border(
@@ -419,7 +472,7 @@ class PdfService {
           3: const pw.FixedColumnWidth(60), // Rate
           4: const pw.FixedColumnWidth(40), // Per
           5: const pw.FixedColumnWidth(70), // Amount
-          6: const pw.FixedColumnWidth(40), // VAT %
+          if (isVat) 6: const pw.FixedColumnWidth(40), // VAT %
         },
         children: [
           // Header
@@ -432,7 +485,7 @@ class PdfService {
               _buildTableCell('Rate', isHeader: true),
               _buildTableCell('per', isHeader: true),
               _buildTableCell('Amount', isHeader: true),
-              _buildTableCell('VAT %', isHeader: true),
+              if (isVat) _buildTableCell('VAT %', isHeader: true),
             ],
           ),
           // Rows
@@ -449,7 +502,10 @@ class PdfService {
                 _buildTableCell(item.unitPrice.toStringAsFixed(2)),
                 _buildTableCell(item.unit ?? '-'),
                 _buildTableCell(item.total.toStringAsFixed(2)),
-                _buildTableCell('5%'), // Assuming 5% as per image example
+                if (isVat)
+                  _buildTableCell(
+                    '10%',
+                  ), // 10% for Invoice (updated from 5% to 10% in form logic too)
               ],
             );
           }).toList(),
@@ -479,10 +535,8 @@ class PdfService {
   }
 
   pw.Widget _buildTotalSection(Invoice invoice, BusinessProfile? profile) {
-    // Basic Number to Words (Simplified)
-    String amountInWords =
-        'UAE Dirham ${invoice.total.toStringAsFixed(2)} Only';
-    // Creating a proper converter is complex, using placeholder or simple string for now.
+    // Basic Number to Words
+    String amountInWords = NumberToWords.convert(invoice.total);
 
     return pw.Container(
       decoration: pw.BoxDecoration(
@@ -521,6 +575,43 @@ class PdfService {
             flex: 1,
             child: pw.Column(
               children: [
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                  children: [
+                    pw.Text('Subtotal', style: const pw.TextStyle(fontSize: 9)),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text(
+                        'AED ${invoice.subtotal.toStringAsFixed(2)}',
+                        style: pw.TextStyle(
+                          fontSize: 9,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if ((invoice.isVatApplicable ?? true) && invoice.taxAmount > 0)
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.end,
+                    children: [
+                      pw.Text(
+                        'VAT (10%)',
+                        style: const pw.TextStyle(fontSize: 9),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          'AED ${invoice.taxAmount.toStringAsFixed(2)}',
+                          style: pw.TextStyle(
+                            fontSize: 9,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                pw.Divider(height: 1, thickness: 0.5),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.end,
                   children: [
@@ -594,11 +685,7 @@ class PdfService {
                     height: 60,
                     alignment: pw.Alignment.topCenter,
                     child: pw.Text(
-                      'for ${profile?.companyName ?? "OCEAN POWER TRADING LLC"}',
-                      style: pw.TextStyle(
-                        fontSize: 9,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
+                      'for ${profile?.companyName ?? ""}\n\n\n${invoice.salesPerson ?? "Authorized Signatory"}',
                       textAlign: pw.TextAlign.center,
                     ),
                   ),
@@ -625,10 +712,10 @@ class PdfService {
           ],
         ),
         pw.SizedBox(height: 10),
-        pw.Divider(color: PdfColors.blue900),
+        _buildCustomDivider(),
         pw.Center(
           child: pw.Text(
-            '${profile?.companyName ?? "Ocean Power Trading LLC"}, ${profile?.address ?? "Muweilah, Sharjah"} | ${profile?.phone ?? ""}',
+            '${profile?.companyName ?? ""}, ${profile?.address ?? ""} | ${profile?.phone ?? ""} ${profile?.mobile != null ? "| " + profile!.mobile! : ""} ${profile?.email != null ? "| " + profile!.email! : ""} ${profile?.website != null ? "| " + profile!.website! : ""}',
             style: const pw.TextStyle(fontSize: 8, color: PdfColors.blue900),
           ),
         ),
@@ -664,8 +751,7 @@ class PdfService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      profile?.companyName.toUpperCase() ??
-                          'OCEAN POWER TRADING LLC',
+                      profile?.companyName.toUpperCase() ?? '',
                       style: pw.TextStyle(
                         fontSize: 16,
                         fontWeight: pw.FontWeight.bold,
@@ -702,7 +788,8 @@ class PdfService {
           ],
         ),
         pw.SizedBox(height: 5),
-        pw.Container(height: 2, color: PdfColors.blue900),
+        pw.SizedBox(height: 5),
+        _buildCustomDivider(),
         pw.Container(
           width: double.infinity,
           alignment: pw.Alignment.center,
@@ -712,7 +799,84 @@ class PdfService {
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
           ),
         ),
-        pw.Container(height: 2, color: PdfColors.blue900),
+        _buildCustomDivider(),
+      ],
+    );
+  }
+
+  pw.Widget _buildLetterHeadHeader(
+    BusinessProfile? profile,
+    pw.ImageProvider? image,
+  ) {
+    return pw.Column(
+      children: [
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Row(
+              children: [
+                if (image != null)
+                  pw.Container(width: 60, height: 60, child: pw.Image(image)),
+                pw.SizedBox(width: 10),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      profile?.companyName.toUpperCase() ?? '',
+                      style: pw.TextStyle(
+                        fontSize: 16,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900,
+                      ),
+                    ),
+                    if (profile?.address != null)
+                      pw.Container(
+                        width: 200,
+                        child: pw.Text(
+                          profile!.address!,
+                          style: const pw.TextStyle(fontSize: 9),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                if (profile?.phone != null)
+                  pw.Text(
+                    profile!.phone!,
+                    style: pw.TextStyle(fontSize: 9, color: PdfColors.blue),
+                  ),
+                if (profile?.email != null)
+                  pw.Text(
+                    profile!.email!,
+                    style: pw.TextStyle(fontSize: 9, color: PdfColors.blue),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 5),
+        _buildCustomDivider(),
+      ],
+    );
+  }
+
+  pw.Widget _buildLetterHeadFooter(BusinessProfile? profile) {
+    return pw.Column(
+      children: [
+        _buildCustomDivider(),
+        pw.SizedBox(height: 5),
+        pw.Center(
+          child: pw.Text(
+            '${profile?.companyName ?? ""}, ${profile?.address ?? ""} | ${profile?.phone ?? ""} ${profile?.mobile != null ? "| " + profile!.mobile! : ""} ${profile?.email != null ? "| " + profile!.email! : ""} ${profile?.website != null ? "| " + profile!.website! : ""}',
+            style: const pw.TextStyle(fontSize: 8, color: PdfColors.blue900),
+            textAlign: pw.TextAlign.center,
+          ),
+        ),
       ],
     );
   }
@@ -886,7 +1050,7 @@ class PdfService {
   }
 
   pw.Widget _buildLpoTotalSection(Lpo lpo, BusinessProfile? profile) {
-    String amountInWords = 'UAE Dirham ${lpo.total.toStringAsFixed(2)} Only';
+    String amountInWords = NumberToWords.convert(lpo.total);
 
     return pw.Container(
       decoration: pw.BoxDecoration(
@@ -941,7 +1105,7 @@ class PdfService {
                     ),
                   ],
                 ),
-                if (lpo.taxAmount > 0)
+                if ((lpo.isVatApplicable ?? true) && lpo.taxAmount > 0)
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.end,
                     children: [
@@ -1017,7 +1181,7 @@ class PdfService {
                     height: 60,
                     alignment: pw.Alignment.topCenter,
                     child: pw.Text(
-                      'for ${profile?.companyName ?? "OCEAN POWER TRADING LLC"}',
+                      'for ${profile?.companyName ?? ""}\n\n\n${lpo.salesPerson ?? "Authorised Signatory"}',
                       style: pw.TextStyle(
                         fontSize: 9,
                         fontWeight: pw.FontWeight.bold,
@@ -1043,7 +1207,7 @@ class PdfService {
         pw.Divider(color: PdfColors.blue900),
         pw.Center(
           child: pw.Text(
-            '${profile?.companyName ?? "Ocean Power Trading LLC"}, ${profile?.address ?? "Muweilah, Sharjah"} | ${profile?.phone ?? ""}',
+            '${profile?.companyName ?? ""}, ${profile?.address ?? ""} | ${profile?.phone ?? ""} ${profile?.mobile != null ? "| " + profile!.mobile! : ""} ${profile?.email != null ? "| " + profile!.email! : ""} ${profile?.website != null ? "| " + profile!.website! : ""}',
             style: const pw.TextStyle(fontSize: 8, color: PdfColors.blue900),
           ),
         ),
@@ -1077,8 +1241,7 @@ class PdfService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      profile?.companyName.toUpperCase() ??
-                          'OCEAN POWER TRADING LLC',
+                      profile?.companyName.toUpperCase() ?? '',
                       style: pw.TextStyle(
                         fontSize: 18,
                         fontWeight: pw.FontWeight.bold,
@@ -1105,23 +1268,20 @@ class PdfService {
                   ),
                 if (profile?.email != null)
                   pw.Text(
-                    'info@oceanpowertradingllc.com', // Using standard format or data
+                    profile!.email!,
                     style: pw.TextStyle(fontSize: 10, color: PdfColors.blue900),
                   ),
-                pw.Text(
-                  'www.oceanpowertradingllc.com',
-                  style: pw.TextStyle(fontSize: 10, color: PdfColors.blue900),
-                ),
+                if (profile?.website != null)
+                  pw.Text(
+                    profile!.website!,
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.blue900),
+                  ),
               ],
             ),
           ],
         ),
         pw.SizedBox(height: 10),
-        pw.Container(
-          width: double.infinity,
-          height: 2,
-          color: PdfColors.blue900,
-        ),
+        _buildCustomDivider(),
         pw.SizedBox(height: 10),
         pw.Center(
           child: pw.Text(
@@ -1163,7 +1323,7 @@ class PdfService {
           _buildInfoRow('Project:', quotation.project ?? ''),
           _buildInfoRow(
             'From:',
-            'Sunil PV, Mob: +971569016267', // Hardcoded as per template request or dynamic
+            '${quotation.salesPerson ?? profile?.companyName ?? ""}\nMob: ${profile?.mobile ?? profile?.phone ?? ""}',
           ),
         ],
       ),
@@ -1269,15 +1429,52 @@ class PdfService {
   }
 
   pw.Widget _buildQuotationTotalSection(Quotation quotation) {
+    String amountInWords = NumberToWords.convert(quotation.total);
+
     return pw.Container(
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 2),
       ),
-      child: pw.Column(
+      child: pw.Row(
         children: [
-          _buildTotalRow('TOTAL', quotation.subtotal),
-          _buildTotalRow('VAT', quotation.taxAmount),
-          _buildTotalRow('NET', quotation.total, isBold: true),
+          pw.Expanded(
+            flex: 2,
+            child: pw.Container(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Amount in Words',
+                    style: pw.TextStyle(
+                      fontSize: 8,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    amountInWords,
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          pw.Container(width: 2, height: 60, color: PdfColors.black),
+          pw.Expanded(
+            flex: 1,
+            child: pw.Column(
+              children: [
+                _buildTotalRow('TOTAL', quotation.subtotal),
+                if ((quotation.isVatApplicable ?? true) &&
+                    quotation.taxAmount > 0)
+                  _buildTotalRow('VAT', quotation.taxAmount),
+                _buildTotalRow('NET', quotation.total, isBold: true),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1354,35 +1551,27 @@ class PdfService {
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
         ),
         pw.Text(
-          'Sunil PV\nSr. Sales Executive\nMobile: 0569016267',
+          quotation.salesPerson != null && quotation.salesPerson!.isNotEmpty
+              ? '${quotation.salesPerson}\nMobile: ${profile?.mobile ?? profile?.phone ?? ""}'
+              : '${profile?.companyName ?? ""}\nMobile: ${profile?.mobile ?? profile?.phone ?? ""}',
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
         ),
         pw.SizedBox(height: 10),
-        pw.Container(
-          height: 3,
-          width: double.infinity,
-          color: PdfColors.blue, // Banner bottom like structure
-        ),
-        pw.Container(
-          height: 3,
-          width: double.infinity,
-          color: PdfColors.blue900,
-          margin: const pw.EdgeInsets.only(left: 100),
-        ),
+        _buildCustomDivider(),
         pw.SizedBox(height: 10),
         pw.Center(
           child: pw.Column(
             children: [
               pw.Text(
-                'Ocean Power Trading LLC,',
+                '${profile?.companyName ?? ""},',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                'Muweilah , Sharjah | Mob & WhatsApp : +971522660055',
+                '${profile?.address ?? ""} | Mob & WhatsApp : ${profile?.mobile ?? profile?.phone ?? ""}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                'For enquiries, kindly mail to : info@oceanpowertradingllc.com | web : www.oceanpowertradingllc.com',
+                'For enquiries, kindly mail to : ${profile?.email ?? ""} | web : ${profile?.website ?? ""}',
                 style: const pw.TextStyle(
                   fontSize: 10,
                   color: PdfColors.blue900,
@@ -1422,8 +1611,7 @@ class PdfService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      profile?.companyName.toUpperCase() ??
-                          'OCEAN POWER TRADING LLC',
+                      profile?.companyName.toUpperCase() ?? '',
                       style: pw.TextStyle(
                         fontSize: 18,
                         fontWeight: pw.FontWeight.bold,
@@ -1450,23 +1638,20 @@ class PdfService {
                   ),
                 if (profile?.email != null)
                   pw.Text(
-                    'info@oceanpowertradingllc.com',
+                    profile!.email!,
                     style: pw.TextStyle(fontSize: 10, color: PdfColors.blue900),
                   ),
-                pw.Text(
-                  'www.oceanpowertradingllc.com',
-                  style: pw.TextStyle(fontSize: 10, color: PdfColors.blue900),
-                ),
+                if (profile?.website != null)
+                  pw.Text(
+                    profile!.website!,
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.blue900),
+                  ),
               ],
             ),
           ],
         ),
         pw.SizedBox(height: 10),
-        pw.Container(
-          width: double.infinity,
-          height: 2,
-          color: PdfColors.blue900,
-        ),
+        _buildCustomDivider(),
         pw.SizedBox(height: 10),
         pw.Center(
           child: pw.Text(
@@ -1501,7 +1686,10 @@ class PdfService {
           _buildInfoRow('Proforma No:', proforma.proformaNumber),
           _buildInfoRow('Mobile:', proforma.client.phone ?? ''),
           // _buildInfoRow('Project:', proforma.project ?? ''), // If added to model
-          _buildInfoRow('From:', 'Sunil PV, Mob: +971569016267'),
+          _buildInfoRow(
+            'From:',
+            '${proforma.salesPerson ?? profile?.companyName ?? ""}, Mob: ${profile?.mobile ?? profile?.phone ?? ""}',
+          ),
         ],
       ),
     );
@@ -1554,15 +1742,52 @@ class PdfService {
   }
 
   pw.Widget _buildProformaTotalSection(ProformaInvoice proforma) {
+    String amountInWords = NumberToWords.convert(proforma.total);
+
     return pw.Container(
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.black, width: 2),
       ),
-      child: pw.Column(
+      child: pw.Row(
         children: [
-          _buildTotalRow('TOTAL', proforma.subtotal),
-          _buildTotalRow('VAT', proforma.taxAmount),
-          _buildTotalRow('NET', proforma.total, isBold: true),
+          pw.Expanded(
+            flex: 2,
+            child: pw.Container(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Amount in Words',
+                    style: pw.TextStyle(
+                      fontSize: 8,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    amountInWords,
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          pw.Container(width: 2, height: 60, color: PdfColors.black),
+          pw.Expanded(
+            flex: 1,
+            child: pw.Column(
+              children: [
+                _buildTotalRow('TOTAL', proforma.subtotal),
+                if ((proforma.isVatApplicable ?? true) &&
+                    proforma.taxAmount > 0)
+                  _buildTotalRow('VAT', proforma.taxAmount),
+                _buildTotalRow('NET', proforma.total, isBold: true),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1606,35 +1831,27 @@ class PdfService {
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
         ),
         pw.Text(
-          'Sunil PV\nSr. Sales Executive\nMobile: 0569016267',
+          proforma.salesPerson != null && proforma.salesPerson!.isNotEmpty
+              ? '${proforma.salesPerson}\nMobile: ${profile?.mobile ?? profile?.phone ?? ""}'
+              : '${profile?.companyName ?? ""}\nMobile: ${profile?.mobile ?? profile?.phone ?? ""}',
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
         ),
         pw.SizedBox(height: 10),
-        pw.Container(
-          height: 3,
-          width: double.infinity,
-          color: PdfColors.blue, // Banner bottom like structure
-        ),
-        pw.Container(
-          height: 3,
-          width: double.infinity,
-          color: PdfColors.blue900,
-          margin: const pw.EdgeInsets.only(left: 100),
-        ),
+        _buildCustomDivider(),
         pw.SizedBox(height: 10),
         pw.Center(
           child: pw.Column(
             children: [
               pw.Text(
-                'Ocean Power Trading LLC,',
+                '${profile?.companyName ?? ""},',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                'Muweilah , Sharjah | Mob & WhatsApp : +971522660055',
+                '${profile?.address ?? ""} | Mob & WhatsApp : ${profile?.mobile ?? profile?.phone ?? ""}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                'For enquiries, kindly mail to : info@oceanpowertradingllc.com | web : www.oceanpowertradingllc.com',
+                'For enquiries, kindly mail to : ${profile?.email ?? ""} | web : ${profile?.website ?? ""}',
                 style: const pw.TextStyle(
                   fontSize: 10,
                   color: PdfColors.blue900,

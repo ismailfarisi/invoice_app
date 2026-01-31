@@ -47,6 +47,10 @@ class ProformaInvoice {
   final String? terms;
   @HiveField(13)
   final String? termsAndConditions;
+  @HiveField(14)
+  final String? salesPerson;
+  @HiveField(15)
+  final bool? isVatApplicable;
 
   ProformaInvoice({
     required this.id,
@@ -63,6 +67,8 @@ class ProformaInvoice {
     this.notes,
     this.terms,
     this.termsAndConditions,
+    this.salesPerson,
+    this.isVatApplicable = true,
   });
 
   // Helper to convert to Invoice
@@ -81,6 +87,8 @@ class ProformaInvoice {
       notes: notes,
       terms: terms,
       termsAndConditions: termsAndConditions,
+      salesPerson: salesPerson,
+      isVatApplicable: isVatApplicable,
     );
   }
 }

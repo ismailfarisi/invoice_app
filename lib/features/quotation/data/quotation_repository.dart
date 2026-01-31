@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_invoice_app/features/quotation/domain/models/quotation.dart';
 
@@ -10,6 +11,8 @@ class QuotationRepository {
   List<Quotation> getAllQuotations() {
     return _box.values.toList();
   }
+
+  ValueListenable<Box<Quotation>> get listenable => _box.listenable();
 
   Quotation? getQuotation(String id) {
     return _box.get(id);

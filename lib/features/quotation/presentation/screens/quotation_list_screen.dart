@@ -12,7 +12,6 @@ class QuotationListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(quotationRepositoryProvider);
-    final quotations = repo.getAllQuotations();
 
     return DefaultTabController(
       length: 5,
@@ -30,34 +29,40 @@ class QuotationListScreen extends ConsumerWidget {
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _QuotationList(quotations: quotations),
-            _QuotationList(
-              quotations: quotations
-                  .where((q) => q.status == QuotationStatus.draft)
-                  .toList(),
-            ),
-            _QuotationList(
-              quotations: quotations
-                  .where((q) => q.status == QuotationStatus.sent)
-                  .toList(),
-            ),
-            _QuotationList(
-              quotations: quotations
-                  .where((q) => q.status == QuotationStatus.accepted)
-                  .toList(),
-            ),
-            _QuotationList(
-              quotations: quotations
-                  .where(
-                    (q) =>
-                        q.status == QuotationStatus.rejected ||
-                        q.status == QuotationStatus.expired,
-                  )
-                  .toList(),
-            ),
-          ],
+        body: ValueListenableBuilder(
+          valueListenable: repo.listenable,
+          builder: (context, box, _) {
+            final quotations = box.values.toList();
+            return TabBarView(
+              children: [
+                _QuotationList(quotations: quotations),
+                _QuotationList(
+                  quotations: quotations
+                      .where((q) => q.status == QuotationStatus.draft)
+                      .toList(),
+                ),
+                _QuotationList(
+                  quotations: quotations
+                      .where((q) => q.status == QuotationStatus.sent)
+                      .toList(),
+                ),
+                _QuotationList(
+                  quotations: quotations
+                      .where((q) => q.status == QuotationStatus.accepted)
+                      .toList(),
+                ),
+                _QuotationList(
+                  quotations: quotations
+                      .where(
+                        (q) =>
+                            q.status == QuotationStatus.rejected ||
+                            q.status == QuotationStatus.expired,
+                      )
+                      .toList(),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

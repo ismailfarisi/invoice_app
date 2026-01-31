@@ -33,13 +33,15 @@ class QuotationAdapter extends TypeAdapter<Quotation> {
       enquiryRef: fields[13] as String?,
       project: fields[14] as String?,
       termsAndConditions: fields[15] as String?,
+      salesPerson: fields[16] as String?,
+      isVatApplicable: fields[17] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Quotation obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(18)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -71,7 +73,11 @@ class QuotationAdapter extends TypeAdapter<Quotation> {
       ..writeByte(14)
       ..write(obj.project)
       ..writeByte(15)
-      ..write(obj.termsAndConditions);
+      ..write(obj.termsAndConditions)
+      ..writeByte(16)
+      ..write(obj.salesPerson)
+      ..writeByte(17)
+      ..write(obj.isVatApplicable);
   }
 
   @override

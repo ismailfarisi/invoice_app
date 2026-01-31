@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 
@@ -10,6 +11,8 @@ class InvoiceRepository {
   List<Invoice> getAllInvoices() {
     return _box.values.toList();
   }
+
+  ValueListenable<Box<Invoice>> get listenable => _box.listenable();
 
   Invoice? getInvoice(String id) {
     return _box.get(id);

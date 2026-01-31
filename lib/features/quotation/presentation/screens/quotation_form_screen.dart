@@ -31,6 +31,8 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
   late TextEditingController _enquiryRefController;
   late TextEditingController _termsController;
   late TextEditingController _termsAndConditionsController;
+  late TextEditingController _salesPersonController;
+  bool _isVatApplicable = true;
 
   @override
   void initState() {
@@ -52,6 +54,10 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     _termsAndConditionsController = TextEditingController(
       text: widget.quotation?.termsAndConditions,
     );
+    _salesPersonController = TextEditingController(
+      text: widget.quotation?.salesPerson,
+    );
+    _isVatApplicable = widget.quotation?.isVatApplicable ?? true;
   }
 
   @override
@@ -61,6 +67,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     _enquiryRefController.dispose();
     _termsController.dispose();
     _termsAndConditionsController.dispose();
+    _salesPersonController.dispose();
 
     super.dispose();
   }
@@ -87,7 +94,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
 
   double get _subtotal => _items.fold(0, (sum, item) => sum + item.total);
 
-  void _save() {
+  Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
       if (_items.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -97,7 +104,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
       }
 
       final subtotal = _subtotal;
-      final tax = subtotal * 0.1;
+      final tax = _isVatApplicable ? subtotal * 0.1 : 0.0;
       final total = subtotal + tax;
 
       final quotation = Quotation(
@@ -115,16 +122,19 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
         enquiryRef: _enquiryRefController.text,
         terms: _termsController.text,
         termsAndConditions: _termsAndConditionsController.text,
+        salesPerson: _salesPersonController.text,
+        isVatApplicable: _isVatApplicable,
       );
 
-      ref.read(quotationRepositoryProvider).saveQuotation(quotation);
-      Navigator.pop(context);
+      await ref.read(quotationRepositoryProvider).saveQuotation(quotation);
+      if (context.mounted) Navigator.pop(context);
     }
   }
 
-  void _convertToInvoice() {
+  Future<void> _convertToInvoice() async {
     final invoice = widget.quotation!.toInvoice();
-    ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
+    await ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Converted to Invoice successfully!')),
     );
@@ -245,6 +255,25 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                     prefixIcon: Icon(Icons.bookmark_border),
                   ),
                 ),
+
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _salesPersonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Sales Person',
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SwitchListTile(
+                  title: const Text('VAT Applicable'),
+                  value: _isVatApplicable,
+                  onChanged: (val) {
+                    setState(() {
+                      _isVatApplicable = val;
+                    });
+                  },
+                ),
                 const SizedBox(height: 20),
                 DropdownButtonFormField<QuotationStatus>(
                   initialValue: _status,
@@ -342,11 +371,15 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                 children: [
                   _TotalRow(label: 'Subtotal', value: _subtotal),
                   const SizedBox(height: 8),
-                  _TotalRow(label: 'Tax (10%)', value: _subtotal * 0.1),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(),
-                  ),
+                  _TotalRow(label: 'Subtotal', value: _subtotal),
+                  const SizedBox(height: 8),
+                  if (_isVatApplicable) ...[
+                    _TotalRow(label: 'Tax (10%)', value: _subtotal * 0.1),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(),
+                    ),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -358,7 +391,9 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                         ),
                       ),
                       Text(
-                        CurrencyFormatter.format(_subtotal * 1.1),
+                        CurrencyFormatter.format(
+                          _isVatApplicable ? _subtotal * 1.1 : _subtotal,
+                        ),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w900,

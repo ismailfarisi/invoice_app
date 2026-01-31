@@ -12,7 +12,6 @@ class InvoiceListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(invoiceRepositoryProvider);
-    final invoices = repo.getAllInvoices();
 
     return DefaultTabController(
       length: 3,
@@ -27,20 +26,26 @@ class InvoiceListScreen extends ConsumerWidget {
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _InvoiceList(invoices: invoices),
-            _InvoiceList(
-              invoices: invoices
-                  .where((i) => i.status == InvoiceStatus.paid)
-                  .toList(),
-            ),
-            _InvoiceList(
-              invoices: invoices
-                  .where((i) => i.status != InvoiceStatus.paid)
-                  .toList(),
-            ),
-          ],
+        body: ValueListenableBuilder(
+          valueListenable: repo.listenable,
+          builder: (context, box, _) {
+            final invoices = box.values.toList();
+            return TabBarView(
+              children: [
+                _InvoiceList(invoices: invoices),
+                _InvoiceList(
+                  invoices: invoices
+                      .where((i) => i.status == InvoiceStatus.paid)
+                      .toList(),
+                ),
+                _InvoiceList(
+                  invoices: invoices
+                      .where((i) => i.status != InvoiceStatus.paid)
+                      .toList(),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

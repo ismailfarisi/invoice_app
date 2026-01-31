@@ -32,6 +32,10 @@ class Invoice {
   final String? terms;
   @HiveField(13)
   final String? termsAndConditions;
+  @HiveField(14)
+  final String? salesPerson;
+  @HiveField(15)
+  final bool? isVatApplicable;
 
   Invoice({
     required this.id,
@@ -48,6 +52,8 @@ class Invoice {
     this.notes,
     this.terms,
     this.termsAndConditions,
+    this.salesPerson,
+    this.isVatApplicable = true,
   });
 }
 

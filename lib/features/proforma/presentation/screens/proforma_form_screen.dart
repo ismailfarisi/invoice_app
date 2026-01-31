@@ -26,6 +26,8 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
   late DateTime _date;
   late ProformaStatus _status;
   late TextEditingController _termsAndConditionsController;
+  late TextEditingController _salesPersonController;
+  bool _isVatApplicable = true;
 
   @override
   void initState() {
@@ -42,12 +44,18 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
     _termsAndConditionsController = TextEditingController(
       text: widget.proforma?.termsAndConditions,
     );
+    _salesPersonController = TextEditingController(
+      text: widget.proforma?.salesPerson,
+    );
+    _isVatApplicable = widget.proforma?.isVatApplicable ?? true;
   }
 
   @override
   void dispose() {
     _proformaNumberController.dispose();
+
     _termsAndConditionsController.dispose();
+    _salesPersonController.dispose();
     super.dispose();
   }
 
@@ -73,7 +81,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
 
   double get _subtotal => _items.fold(0, (sum, item) => sum + item.total);
 
-  void _save() {
+  Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedClient == null) {
         ScaffoldMessenger.of(
@@ -89,7 +97,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
       }
 
       final subtotal = _subtotal;
-      final tax = subtotal * 0.05; // 5% VAT
+      final tax = _isVatApplicable ? subtotal * 0.05 : 0.0;
       final total = subtotal + tax;
 
       final proforma = ProformaInvoice(
@@ -104,11 +112,14 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
         total: total,
 
         status: _status,
+
         termsAndConditions: _termsAndConditionsController.text,
+        salesPerson: _salesPersonController.text,
+        isVatApplicable: _isVatApplicable,
       );
 
-      ref.read(proformaListProvider.notifier).saveProforma(proforma);
-      Navigator.pop(context);
+      await ref.read(proformaListProvider.notifier).saveProforma(proforma);
+      if (context.mounted) Navigator.pop(context);
     }
   }
 
@@ -207,6 +218,25 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                         validator: (val) =>
                             val == null || val.isEmpty ? 'Required' : null,
                       ),
+
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _salesPersonController,
+                        decoration: const InputDecoration(
+                          labelText: 'Sales Person',
+                          prefixIcon: Icon(Icons.person),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SwitchListTile(
+                        title: const Text('VAT Applicable'),
+                        value: _isVatApplicable,
+                        onChanged: (val) {
+                          setState(() {
+                            _isVatApplicable = val;
+                          });
+                        },
+                      ),
                       const SizedBox(height: 20),
                       DropdownButtonFormField<ProformaStatus>(
                         initialValue: _status,
@@ -297,11 +327,15 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                       children: [
                         _TotalRow(label: 'Subtotal', value: _subtotal),
                         const SizedBox(height: 8),
-                        _TotalRow(label: 'Tax (5%)', value: _subtotal * 0.05),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Divider(),
-                        ),
+                        _TotalRow(label: 'Subtotal', value: _subtotal),
+                        const SizedBox(height: 8),
+                        if (_isVatApplicable) ...[
+                          _TotalRow(label: 'Tax (5%)', value: _subtotal * 0.05),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(),
+                          ),
+                        ],
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -313,7 +347,9 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                               ),
                             ),
                             Text(
-                              CurrencyFormatter.format(_subtotal * 1.05),
+                              CurrencyFormatter.format(
+                                _isVatApplicable ? _subtotal * 1.05 : _subtotal,
+                              ),
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w900,
