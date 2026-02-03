@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
 
 part 'invoice.g.dart';
 
@@ -101,6 +102,7 @@ class Client {
 
 @HiveType(typeId: 3)
 class LineItem {
+  final String id;
   @HiveField(0)
   final String description;
   @HiveField(1)
@@ -113,10 +115,29 @@ class LineItem {
   final String? unit;
 
   LineItem({
+    String? id,
     required this.description,
     required this.quantity,
     required this.unitPrice,
     required this.total,
     this.unit,
-  });
+  }) : id = id ?? const Uuid().v4();
+
+  LineItem copyWith({
+    String? id,
+    String? description,
+    double? quantity,
+    double? unitPrice,
+    double? total,
+    String? unit,
+  }) {
+    return LineItem(
+      id: id ?? this.id,
+      description: description ?? this.description,
+      quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
+      total: total ?? this.total,
+      unit: unit ?? this.unit,
+    );
+  }
 }

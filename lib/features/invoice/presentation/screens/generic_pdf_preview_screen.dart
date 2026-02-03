@@ -16,10 +16,12 @@ class GenericPdfPreviewScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: PdfPreview(
-        build: buildEvent,
-        canChangeOrientation: false,
-        canDebug: false,
+      body: SafeArea(
+        child: PdfPreview(
+          build: buildEvent,
+          canChangeOrientation: false,
+          canDebug: false,
+        ),
       ),
     );
   }

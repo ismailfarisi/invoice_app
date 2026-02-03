@@ -6,7 +6,9 @@ import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dar
 import 'package:flutter_invoice_app/features/quotation/presentation/screens/quotation_pdf_preview_screen.dart';
 import 'package:flutter_invoice_app/features/client/presentation/widgets/client_selector.dart';
 import 'package:flutter_invoice_app/features/client/presentation/screens/client_form_screen.dart';
-import 'package:flutter_invoice_app/features/product/presentation/widgets/product_selector.dart';
+import 'package:flutter_invoice_app/core/presentation/widgets/item_card.dart';
+import 'package:flutter_invoice_app/core/presentation/widgets/form/form_section.dart';
+import 'package:flutter_invoice_app/core/presentation/widgets/form/form_total_row.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
 import 'package:uuid/uuid.dart';
@@ -88,7 +90,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
 
   void _updateItem(int index, LineItem newItem) {
     setState(() {
-      _items[index] = newItem;
+      _items[index] = newItem.copyWith(id: _items[index].id);
     });
   }
 
@@ -196,7 +198,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
           padding: const EdgeInsets.all(24),
           children: [
             // Client Details Section
-            _FormSection(
+            FormSection(
               title: 'Client Selection',
               icon: Icons.person_outline,
               children: [
@@ -226,7 +228,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
             const SizedBox(height: 24),
 
             // Quotation Details Section
-            _FormSection(
+            FormSection(
               title: 'Quotation Info',
               icon: Icons.info_outline,
               children: [
@@ -296,7 +298,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
             const SizedBox(height: 24),
 
             // Terms Section
-            _FormSection(
+            FormSection(
               title: 'Terms & Conditions',
               icon: Icons.description_outlined,
               children: [
@@ -343,7 +345,8 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
               final item = entry.value;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: _ItemCard(
+                child: ItemCard(
+                  key: ValueKey(item.id),
                   item: item,
                   index: index,
                   onUpdate: (newItem) => _updateItem(index, newItem),
@@ -369,12 +372,10 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
               ),
               child: Column(
                 children: [
-                  _TotalRow(label: 'Subtotal', value: _subtotal),
-                  const SizedBox(height: 8),
-                  _TotalRow(label: 'Subtotal', value: _subtotal),
+                  FormTotalRow(label: 'Subtotal', value: _subtotal),
                   const SizedBox(height: 8),
                   if (_isVatApplicable) ...[
-                    _TotalRow(label: 'Tax (10%)', value: _subtotal * 0.1),
+                    FormTotalRow(label: 'Tax (10%)', value: _subtotal * 0.1),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
                       child: Divider(),
@@ -409,229 +410,6 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _FormSection extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final List<Widget> children;
-
-  const _FormSection({
-    required this.title,
-    required this.icon,
-    required this.children,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 12),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardTheme.color,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Column(children: children),
-        ),
-      ],
-    );
-  }
-}
-
-class _ItemCard extends StatelessWidget {
-  final LineItem item;
-  final int index;
-  final ValueChanged<LineItem> onUpdate;
-  final VoidCallback onRemove;
-
-  const _ItemCard({
-    required this.item,
-    required this.index,
-    required this.onUpdate,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: ProductSelector(
-                  onChanged: (product) {
-                    if (product != null) {
-                      onUpdate(
-                        LineItem(
-                          description: product.name,
-                          quantity: item.quantity,
-                          unitPrice: product.unitPrice,
-                          total: item.quantity * product.unitPrice,
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: onRemove,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            initialValue: item.description,
-            decoration: const InputDecoration(labelText: 'Description'),
-            onChanged: (val) => onUpdate(
-              LineItem(
-                description: val,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                total: item.total,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  initialValue: item.quantity.toString(),
-                  decoration: const InputDecoration(labelText: 'Qty'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) {
-                    final qty = double.tryParse(val) ?? 0;
-                    onUpdate(
-                      LineItem(
-                        description: item.description,
-                        quantity: qty,
-                        unitPrice: item.unitPrice,
-                        total: qty * item.unitPrice,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 3,
-                child: TextFormField(
-                  initialValue: item.unitPrice.toString(),
-                  decoration: const InputDecoration(labelText: 'Price'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) {
-                    final price = double.tryParse(val) ?? 0;
-                    onUpdate(
-                      LineItem(
-                        description: item.description,
-                        quantity: item.quantity,
-                        unitPrice: price,
-                        total: item.quantity * price,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Total',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      Text(
-                        item.total.toStringAsFixed(2),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TotalRow extends StatelessWidget {
-  final String label;
-  final double value;
-
-  const _TotalRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        Text(
-          CurrencyFormatter.format(value),
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-      ],
     );
   }
 }

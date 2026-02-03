@@ -191,7 +191,10 @@ class PdfService {
     return pdf.save();
   }
 
-  Future<Uint8List> generateLetterHead({BusinessProfile? profile}) async {
+  Future<Uint8List> generateLetterHead({
+    BusinessProfile? profile,
+    String? content,
+  }) async {
     final pdf = pw.Document();
 
     final image = profile?.logoPath != null
@@ -204,6 +207,10 @@ class PdfService {
         build: (pw.Context context) {
           return [
             _buildLetterHeadHeader(profile, image),
+            if (content != null && content.isNotEmpty) ...[
+              pw.SizedBox(height: 20),
+              pw.Text(content, style: const pw.TextStyle(fontSize: 10)),
+            ],
             pw.Spacer(),
             _buildLetterHeadFooter(profile),
           ];
@@ -212,6 +219,350 @@ class PdfService {
     );
 
     return pdf.save();
+  }
+
+  Future<Uint8List> generateDeliveryNote(
+    Invoice invoice, {
+    BusinessProfile? profile,
+  }) async {
+    final pdf = pw.Document();
+
+    final image = profile?.logoPath != null
+        ? pw.MemoryImage(File(profile!.logoPath!).readAsBytesSync())
+        : null;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageTheme: _buildPageTheme(profile, image),
+        build: (pw.Context context) {
+          return [
+            _buildDeliveryNoteHeader(invoice, profile, image),
+            pw.SizedBox(height: 10),
+            _buildDeliveryNoteInfoBox(invoice, profile),
+            _buildDeliveryNoteItemsTable(invoice),
+            pw.SizedBox(height: 10),
+            if (invoice.terms != null) ...[
+              pw.Text(
+                'Terms & Conditions:',
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.Text(invoice.terms!, style: const pw.TextStyle(fontSize: 8)),
+            ],
+            pw.Spacer(),
+            _buildDeliveryNoteFooter(invoice, profile),
+          ];
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  pw.Widget _buildDeliveryNoteHeader(
+    Invoice invoice,
+    BusinessProfile? profile,
+    pw.ImageProvider? image,
+  ) {
+    return pw.Column(
+      children: [
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Row(
+              children: [
+                if (image != null)
+                  pw.Container(width: 60, height: 60, child: pw.Image(image)),
+                pw.SizedBox(width: 10),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      profile?.companyName.toUpperCase() ?? '',
+                      style: pw.TextStyle(
+                        fontSize: 16,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900,
+                      ),
+                    ),
+                    if (profile?.address != null)
+                      pw.Container(
+                        width: 200,
+                        child: pw.Text(
+                          profile?.address ?? '',
+                          style: const pw.TextStyle(fontSize: 9),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                if (profile?.phone != null)
+                  pw.Text(
+                    profile!.phone!,
+                    style: pw.TextStyle(fontSize: 9, color: PdfColors.blue),
+                  ),
+                if (profile?.email != null)
+                  pw.Text(
+                    profile!.email!,
+                    style: pw.TextStyle(fontSize: 9, color: PdfColors.blue),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 5),
+        pw.SizedBox(height: 5),
+        _buildCustomDivider(),
+        pw.Container(
+          width: double.infinity,
+          alignment: pw.Alignment.center,
+          padding: const pw.EdgeInsets.symmetric(vertical: 2),
+          child: pw.Text(
+            'Delivery Note',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+          ),
+        ),
+        _buildCustomDivider(),
+      ],
+    );
+  }
+
+  pw.Widget _buildDeliveryNoteInfoBox(
+    Invoice invoice,
+    BusinessProfile? profile,
+  ) {
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: 0.5),
+      ),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Left Column
+          pw.Expanded(
+            flex: 1,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                _buildBoxRow('Supplier', profile?.companyName, isBold: true),
+                _buildBoxRow('Address', profile?.address),
+                pw.Divider(height: 1, thickness: 0.5),
+                _buildBoxRow('Buyer', invoice.client.name, isBold: true),
+                _buildBoxRow('Address', invoice.client.address),
+                _buildBoxRow('Place of Supply', 'UAE'),
+              ],
+            ),
+          ),
+          // Vertical Divider
+          pw.Container(width: 0.5, height: 100, color: PdfColors.black),
+          // Right Column
+          pw.Expanded(
+            flex: 1,
+            child: pw.Column(
+              children: [
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      child: _buildGridItem(
+                        'Delivery Note No.',
+                        'DN-${invoice.invoiceNumber}',
+                        isBold: true,
+                      ),
+                    ),
+                    pw.Container(
+                      width: 0.5,
+                      height: 30,
+                      color: PdfColors.black,
+                    ),
+                    pw.Expanded(
+                      child: _buildGridItem(
+                        'Dated',
+                        DateFormat('dd-MMM-yy').format(invoice.date),
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Divider(height: 1, thickness: 0.5),
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      child: _buildGridItem(
+                        'Invoice Ref.',
+                        invoice.invoiceNumber,
+                      ),
+                    ),
+                    pw.Container(
+                      width: 0.5,
+                      height: 30,
+                      color: PdfColors.black,
+                    ),
+                    pw.Expanded(
+                      child: _buildGridItem('Other Reference(s)', '-'),
+                    ),
+                  ],
+                ),
+                pw.Divider(height: 1, thickness: 0.5),
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(4),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Terms of Delivery',
+                        style: pw.TextStyle(fontSize: 8),
+                      ),
+                      pw.Text(
+                        invoice.terms ?? '-',
+                        style: pw.TextStyle(
+                          fontSize: 9,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildDeliveryNoteItemsTable(Invoice invoice) {
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border(
+          left: pw.BorderSide(width: 0.5),
+          right: pw.BorderSide(width: 0.5),
+          bottom: pw.BorderSide(width: 0.5),
+        ),
+      ),
+      child: pw.Table(
+        border: pw.TableBorder.symmetric(inside: pw.BorderSide(width: 0.5)),
+        columnWidths: {
+          0: const pw.FixedColumnWidth(30), // SI No
+          1: const pw.FlexColumnWidth(4), // Description
+          2: const pw.FixedColumnWidth(70), // Quantity
+          3: const pw.FixedColumnWidth(70), // Per
+        },
+        children: [
+          // Header
+          pw.TableRow(
+            decoration: const pw.BoxDecoration(color: PdfColors.white),
+            children: [
+              _buildTableCell('SI No.', isHeader: true),
+              _buildTableCell('Description of Goods', isHeader: true),
+              _buildTableCell('Quantity', isHeader: true),
+              _buildTableCell('per', isHeader: true),
+            ],
+          ),
+          // Rows
+          ...invoice.items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            return pw.TableRow(
+              children: [
+                _buildTableCell((index + 1).toString()),
+                _buildTableCell(item.description, alignLeft: true),
+                _buildTableCell(
+                  item.quantity.toStringAsFixed(0) + ' ' + (item.unit ?? ''),
+                ),
+                _buildTableCell(item.unit ?? '-'),
+              ],
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildDeliveryNoteFooter(
+    Invoice invoice,
+    BusinessProfile? profile,
+  ) {
+    return pw.Column(
+      children: [
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.end,
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Received By:',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
+                pw.SizedBox(height: 30),
+                pw.Container(
+                  width: 150,
+                  decoration: const pw.BoxDecoration(
+                    border: pw.Border(top: pw.BorderSide(width: 0.5)),
+                  ),
+                  child: pw.Text(
+                    'Name & Signature',
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ),
+              ],
+            ),
+            pw.Column(
+              children: [
+                pw.Container(
+                  height: 50,
+                  alignment: pw.Alignment.bottomCenter,
+                  child: pw.Text(
+                    'for ${profile?.companyName ?? ""}',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 9,
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 5),
+                pw.Container(
+                  width: 150,
+                  decoration: const pw.BoxDecoration(
+                    border: pw.Border(top: pw.BorderSide(width: 0.5)),
+                  ),
+                  child: pw.Text(
+                    'Authorized Signatory',
+                    style: const pw.TextStyle(fontSize: 8),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 20),
+        _buildCustomDivider(),
+        pw.Center(
+          child: pw.Text(
+            '${profile?.companyName ?? ""}, ${profile?.address ?? ""} | ${profile?.phone ?? ""} ${profile?.mobile != null ? "| " + profile!.mobile! : ""} ${profile?.email != null ? "| " + profile!.email! : ""} ${profile?.website != null ? "| " + profile!.website! : ""}',
+            style: const pw.TextStyle(fontSize: 8, color: PdfColors.blue900),
+          ),
+        ),
+        pw.Center(
+          child: pw.Text(
+            'This is a Computer Generated Delivery Note',
+            style: const pw.TextStyle(fontSize: 8),
+          ),
+        ),
+      ],
+    );
   }
 
   pw.Widget _buildHeader(
@@ -1314,7 +1665,7 @@ class PdfService {
             quotation.client.contactPerson ?? 'Mr. : John',
           ),
           _buildInfoRow('Quotation No:', quotation.quotationNumber),
-          _buildInfoRow('Mobile:', quotation.client.phone ?? ''),
+          _buildInfoRow('Contact:', quotation.client.phone ?? ''),
           _buildInfoRow(
             'Enquiry Ref:',
             quotation.enquiryRef ??
@@ -1323,7 +1674,7 @@ class PdfService {
           _buildInfoRow('Project:', quotation.project ?? ''),
           _buildInfoRow(
             'From:',
-            '${quotation.salesPerson ?? profile?.companyName ?? ""}\nMob: ${profile?.mobile ?? profile?.phone ?? ""}',
+            '${quotation.salesPerson ?? profile?.companyName ?? ""}\nContact: ${profile?.mobile ?? profile?.phone ?? ""}',
           ),
         ],
       ),
@@ -1552,8 +1903,8 @@ class PdfService {
         ),
         pw.Text(
           quotation.salesPerson != null && quotation.salesPerson!.isNotEmpty
-              ? '${quotation.salesPerson}\nMobile: ${profile?.mobile ?? profile?.phone ?? ""}'
-              : '${profile?.companyName ?? ""}\nMobile: ${profile?.mobile ?? profile?.phone ?? ""}',
+              ? '${quotation.salesPerson}\nContact: ${profile?.mobile ?? profile?.phone ?? ""}'
+              : '${profile?.companyName ?? ""}\nContact: ${profile?.mobile ?? profile?.phone ?? ""}',
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
         ),
         pw.SizedBox(height: 10),
@@ -1567,7 +1918,7 @@ class PdfService {
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                '${profile?.address ?? ""} | Mob & WhatsApp : ${profile?.mobile ?? profile?.phone ?? ""}',
+                '${profile?.address ?? ""} | Contact & WhatsApp : ${profile?.mobile ?? profile?.phone ?? ""}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
@@ -1684,11 +2035,11 @@ class PdfService {
             proforma.client.contactPerson ?? 'Mr. : John',
           ),
           _buildInfoRow('Proforma No:', proforma.proformaNumber),
-          _buildInfoRow('Mobile:', proforma.client.phone ?? ''),
+          _buildInfoRow('Contact:', proforma.client.phone ?? ''),
           // _buildInfoRow('Project:', proforma.project ?? ''), // If added to model
           _buildInfoRow(
             'From:',
-            '${proforma.salesPerson ?? profile?.companyName ?? ""}, Mob: ${profile?.mobile ?? profile?.phone ?? ""}',
+            '${proforma.salesPerson ?? profile?.companyName ?? ""}, Contact: ${profile?.mobile ?? profile?.phone ?? ""}',
           ),
         ],
       ),
@@ -1832,8 +2183,8 @@ class PdfService {
         ),
         pw.Text(
           proforma.salesPerson != null && proforma.salesPerson!.isNotEmpty
-              ? '${proforma.salesPerson}\nMobile: ${profile?.mobile ?? profile?.phone ?? ""}'
-              : '${profile?.companyName ?? ""}\nMobile: ${profile?.mobile ?? profile?.phone ?? ""}',
+              ? '${proforma.salesPerson}\nContact: ${profile?.mobile ?? profile?.phone ?? ""}'
+              : '${profile?.companyName ?? ""}\nContact: ${profile?.mobile ?? profile?.phone ?? ""}',
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
         ),
         pw.SizedBox(height: 10),
@@ -1847,7 +2198,7 @@ class PdfService {
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                '${profile?.address ?? ""} | Mob & WhatsApp : ${profile?.mobile ?? profile?.phone ?? ""}',
+                '${profile?.address ?? ""} | Contact & WhatsApp : ${profile?.mobile ?? profile?.phone ?? ""}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(

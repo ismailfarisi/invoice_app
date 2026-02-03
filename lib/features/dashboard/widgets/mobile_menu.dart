@@ -5,9 +5,9 @@ import 'package:flutter_invoice_app/features/lpo/presentation/screens/lpo_list_s
 import 'package:flutter_invoice_app/features/product/presentation/screens/product_list_screen.dart';
 import 'package:flutter_invoice_app/features/proforma/presentation/screens/proforma_list_screen.dart';
 import 'package:flutter_invoice_app/features/settings/presentation/screens/settings_screen.dart';
-import 'package:flutter_invoice_app/features/invoice/presentation/screens/generic_pdf_preview_screen.dart';
-import 'package:flutter_invoice_app/features/invoice/domain/services/pdf_service.dart';
-import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
+
+import 'package:flutter_invoice_app/features/invoice/presentation/screens/delivery_note_list_screen.dart';
+import 'package:flutter_invoice_app/features/invoice/presentation/screens/letterhead_input_screen.dart';
 
 class MobileMenu extends ConsumerWidget {
   const MobileMenu({super.key});
@@ -24,80 +24,87 @@ class MobileMenu extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          _MenuTile(
-            icon: Icons.people_outline,
-            title: 'Clients',
-            subtitle: 'Manage companies and contacts',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ClientListScreen()),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            _MenuTile(
+              icon: Icons.people_outline,
+              title: 'Clients',
+              subtitle: 'Manage companies and contacts',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ClientListScreen()),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          _MenuTile(
-            icon: Icons.inventory_2_outlined,
-            title: 'Items',
-            subtitle: 'Products and services inventory',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProductListScreen()),
+            const SizedBox(height: 16),
+            _MenuTile(
+              icon: Icons.inventory_2_outlined,
+              title: 'Items',
+              subtitle: 'Products and services inventory',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProductListScreen()),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          _MenuTile(
-            icon: Icons.shopping_bag_outlined,
-            title: 'Purchase Orders',
-            subtitle: 'Manage local purchase orders (LPO)',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LpoListScreen()),
+            const SizedBox(height: 16),
+            _MenuTile(
+              icon: Icons.shopping_bag_outlined,
+              title: 'Purchase Orders',
+              subtitle: 'Manage local purchase orders (LPO)',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LpoListScreen()),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          _MenuTile(
-            icon: Icons.assignment_outlined,
-            title: 'Proforma Invoices',
-            subtitle: 'Create and manage proforma invoices',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProformaListScreen()),
+            const SizedBox(height: 16),
+            _MenuTile(
+              icon: Icons.assignment_outlined,
+              title: 'Proforma Invoices',
+              subtitle: 'Create and manage proforma invoices',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProformaListScreen()),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          _MenuTile(
-            icon: Icons.description_outlined,
-            title: 'Letter Head',
-            subtitle: 'Generate and download letterhead',
-            onTap: () {
-              final profile = ref
-                  .read(businessProfileRepositoryProvider)
-                  .getProfile();
-              Navigator.push(
+            const SizedBox(height: 16),
+            _MenuTile(
+              icon: Icons.local_shipping_outlined,
+              title: 'Delivery Notes',
+              subtitle: 'Generate delivery notes from invoices',
+              onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => GenericPdfPreviewScreen(
-                    title: 'Letter Head Preview',
-                    buildEvent: (format) =>
-                        PdfService().generateLetterHead(profile: profile),
-                  ),
+                  builder: (_) => const DeliveryNoteListScreen(),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          _MenuTile(
-            icon: Icons.settings_outlined,
-            title: 'Settings',
-            subtitle: 'App preferences and configurations',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            _MenuTile(
+              icon: Icons.description_outlined,
+              title: 'Letter Head',
+              subtitle: 'Generate and download letterhead',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LetterHeadInputScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            _MenuTile(
+              icon: Icons.settings_outlined,
+              title: 'Settings',
+              subtitle: 'App preferences and configurations',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
