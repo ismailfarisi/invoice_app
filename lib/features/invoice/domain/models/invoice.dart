@@ -56,6 +56,55 @@ class Invoice {
     this.salesPerson,
     this.isVatApplicable = true,
   });
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'invoiceNumber': invoiceNumber,
+      'date': date.toIso8601String(),
+      'dueDate': dueDate?.toIso8601String(),
+      'client': client.toJson(),
+      'items': items.map((x) => x.toJson()).toList(),
+      'subtotal': subtotal,
+      'taxAmount': taxAmount,
+      'discount': discount,
+      'total': total,
+      'status': status.name,
+      'notes': notes,
+      'terms': terms,
+      'termsAndConditions': termsAndConditions,
+      'salesPerson': salesPerson,
+      'isVatApplicable': isVatApplicable,
+    };
+  }
+
+  factory Invoice.fromJson(Map<String, dynamic> json) {
+    return Invoice(
+      id: json['id'],
+      invoiceNumber: json['invoiceNumber'],
+      date: DateTime.parse(json['date']),
+      dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
+      client: Client.fromJson(Map<String, dynamic>.from(json['client'])),
+      items: List<LineItem>.from(
+        json['items']?.map(
+              (x) => LineItem.fromJson(Map<String, dynamic>.from(x)),
+            ) ??
+            [],
+      ),
+      subtotal: (json['subtotal'] as num).toDouble(),
+      taxAmount: (json['taxAmount'] as num).toDouble(),
+      discount: (json['discount'] as num).toDouble(),
+      total: (json['total'] as num).toDouble(),
+      status: InvoiceStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => InvoiceStatus.draft,
+      ),
+      notes: json['notes'],
+      terms: json['terms'],
+      termsAndConditions: json['termsAndConditions'],
+      salesPerson: json['salesPerson'],
+      isVatApplicable: json['isVatApplicable'] ?? true,
+    );
+  }
 }
 
 @HiveType(typeId: 1)
@@ -98,6 +147,30 @@ class Client {
     this.contactPerson,
     this.taxId,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'address': address,
+      'phone': phone,
+      'contactPerson': contactPerson,
+      'taxId': taxId,
+    };
+  }
+
+  factory Client.fromJson(Map<String, dynamic> json) {
+    return Client(
+      id: json['id'],
+      name: json['name'],
+      email: json['email'],
+      address: json['address'],
+      phone: json['phone'],
+      contactPerson: json['contactPerson'],
+      taxId: json['taxId'],
+    );
+  }
 }
 
 @HiveType(typeId: 3)
@@ -138,6 +211,28 @@ class LineItem {
       unitPrice: unitPrice ?? this.unitPrice,
       total: total ?? this.total,
       unit: unit ?? this.unit,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'description': description,
+      'quantity': quantity,
+      'unitPrice': unitPrice,
+      'total': total,
+      'unit': unit,
+    };
+  }
+
+  factory LineItem.fromJson(Map<String, dynamic> json) {
+    return LineItem(
+      id: json['id'],
+      description: json['description'],
+      quantity: (json['quantity'] as num).toDouble(),
+      unitPrice: (json['unitPrice'] as num).toDouble(),
+      total: (json['total'] as num).toDouble(),
+      unit: json['unit'],
     );
   }
 }

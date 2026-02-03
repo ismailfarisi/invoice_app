@@ -99,4 +99,60 @@ class Quotation {
       isVatApplicable: isVatApplicable,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'quotationNumber': quotationNumber,
+      'date': date.toIso8601String(),
+      'validUntil': validUntil?.toIso8601String(),
+      'client': client.toJson(),
+      'items': items.map((x) => x.toJson()).toList(),
+      'subtotal': subtotal,
+      'taxAmount': taxAmount,
+      'discount': discount,
+      'total': total,
+      'status': status.name,
+      'notes': notes,
+      'terms': terms,
+      'enquiryRef': enquiryRef,
+      'project': project,
+      'termsAndConditions': termsAndConditions,
+      'salesPerson': salesPerson,
+      'isVatApplicable': isVatApplicable,
+    };
+  }
+
+  factory Quotation.fromJson(Map<String, dynamic> json) {
+    return Quotation(
+      id: json['id'],
+      quotationNumber: json['quotationNumber'],
+      date: DateTime.parse(json['date']),
+      validUntil: json['validUntil'] != null
+          ? DateTime.parse(json['validUntil'])
+          : null,
+      client: Client.fromJson(Map<String, dynamic>.from(json['client'])),
+      items: List<LineItem>.from(
+        json['items']?.map(
+              (x) => LineItem.fromJson(Map<String, dynamic>.from(x)),
+            ) ??
+            [],
+      ),
+      subtotal: (json['subtotal'] as num).toDouble(),
+      taxAmount: (json['taxAmount'] as num).toDouble(),
+      discount: (json['discount'] as num).toDouble(),
+      total: (json['total'] as num).toDouble(),
+      status: QuotationStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => QuotationStatus.draft,
+      ),
+      notes: json['notes'],
+      terms: json['terms'],
+      enquiryRef: json['enquiryRef'],
+      project: json['project'],
+      termsAndConditions: json['termsAndConditions'],
+      salesPerson: json['salesPerson'],
+      isVatApplicable: json['isVatApplicable'] ?? true,
+    );
+  }
 }

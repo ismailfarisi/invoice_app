@@ -4,6 +4,7 @@ import 'package:flutter_invoice_app/features/settings/domain/models/business_pro
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_invoice_app/core/services/backup_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -70,6 +71,80 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Settings saved successfully')),
       );
+    }
+  }
+
+  Future<void> _exportData() async {
+    try {
+      await BackupService().exportData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data exported successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _importData() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import Backup?'),
+        content: const Text(
+          'This will overwrite all current data with the backup data. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Import & Overwrite'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await BackupService().importData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Data imported successfully.')),
+          );
+          // Refresh profile data in UI
+          final profile = ref
+              .read(businessProfileRepositoryProvider)
+              .getProfile();
+          setState(() {
+            _nameController.text = profile?.companyName ?? '';
+            _emailController.text = profile?.email ?? '';
+            _phoneController.text = profile?.phone ?? '';
+            _addressController.text = profile?.address ?? '';
+            _taxIdController.text = profile?.taxId ?? '';
+            _bankDetailsController.text = profile?.bankDetails ?? '';
+            _websiteController.text = profile?.website ?? '';
+            _mobileController.text = profile?.mobile ?? '';
+            _logoPath = profile?.logoPath;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+        }
+      }
     }
   }
 
@@ -194,6 +269,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           prefixIcon: Icon(Icons.account_balance_outlined),
                         ),
                         maxLines: 4,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _SettingsSection(
+                    title: 'Data Management',
+                    icon: Icons.storage_outlined,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _exportData,
+                        icon: const Icon(Icons.download),
+                        label: const Text('Export Data Backup'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _importData,
+                        icon: const Icon(Icons.upload),
+                        label: const Text('Import Data Backup'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                          foregroundColor: Theme.of(context).colorScheme.error,
+                        ),
                       ),
                     ],
                   ),

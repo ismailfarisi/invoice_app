@@ -25,4 +25,26 @@ class Product {
     this.sku,
     this.stockQuantity = 0,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'unitPrice': unitPrice,
+      'sku': sku,
+      'stockQuantity': stockQuantity,
+    };
+  }
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      id: json['id'],
+      name: json['name'],
+      description: json['description'],
+      unitPrice: (json['unitPrice'] as num).toDouble(),
+      sku: json['sku'],
+      stockQuantity: (json['stockQuantity'] as num?)?.toDouble() ?? 0,
+    );
+  }
 }

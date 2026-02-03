@@ -70,4 +70,56 @@ class Lpo {
     this.salesPerson,
     this.isVatApplicable = true,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'lpoNumber': lpoNumber,
+      'date': date.toIso8601String(),
+      'expectedDeliveryDate': expectedDeliveryDate?.toIso8601String(),
+      'vendor': vendor.toJson(),
+      'items': items.map((x) => x.toJson()).toList(),
+      'subtotal': subtotal,
+      'taxAmount': taxAmount,
+      'discount': discount,
+      'total': total,
+      'status': status.name,
+      'notes': notes,
+      'terms': terms,
+      'termsAndConditions': termsAndConditions,
+      'salesPerson': salesPerson,
+      'isVatApplicable': isVatApplicable,
+    };
+  }
+
+  factory Lpo.fromJson(Map<String, dynamic> json) {
+    return Lpo(
+      id: json['id'],
+      lpoNumber: json['lpoNumber'],
+      date: DateTime.parse(json['date']),
+      expectedDeliveryDate: json['expectedDeliveryDate'] != null
+          ? DateTime.parse(json['expectedDeliveryDate'])
+          : null,
+      vendor: Client.fromJson(Map<String, dynamic>.from(json['vendor'])),
+      items: List<LineItem>.from(
+        json['items']?.map(
+              (x) => LineItem.fromJson(Map<String, dynamic>.from(x)),
+            ) ??
+            [],
+      ),
+      subtotal: (json['subtotal'] as num).toDouble(),
+      taxAmount: (json['taxAmount'] as num).toDouble(),
+      discount: (json['discount'] as num).toDouble(),
+      total: (json['total'] as num).toDouble(),
+      status: LpoStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => LpoStatus.draft,
+      ),
+      notes: json['notes'],
+      terms: json['terms'],
+      termsAndConditions: json['termsAndConditions'],
+      salesPerson: json['salesPerson'],
+      isVatApplicable: json['isVatApplicable'] ?? true,
+    );
+  }
 }

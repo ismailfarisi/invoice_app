@@ -37,4 +37,34 @@ class BusinessProfile {
     this.website,
     this.mobile,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'companyName': companyName,
+      'email': email,
+      'phone': phone,
+      'address': address,
+      'taxId': taxId,
+      'logoPath': logoPath,
+      'currency': currency,
+      'bankDetails': bankDetails,
+      'website': website,
+      'mobile': mobile,
+    };
+  }
+
+  factory BusinessProfile.fromJson(Map<String, dynamic> json) {
+    return BusinessProfile(
+      companyName: json['companyName'],
+      email: json['email'],
+      phone: json['phone'],
+      address: json['address'],
+      taxId: json['taxId'],
+      logoPath: json['logoPath'],
+      currency: json['currency'] ?? 'USD',
+      bankDetails: json['bankDetails'],
+      website: json['website'],
+      mobile: json['mobile'],
+    );
+  }
 }
