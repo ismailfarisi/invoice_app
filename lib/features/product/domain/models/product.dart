@@ -16,6 +16,8 @@ class Product {
   final String? sku;
   @HiveField(5)
   final double stockQuantity; // For basic inventory tracking
+  @HiveField(6)
+  final String? unit;
 
   Product({
     required this.id,
@@ -24,6 +26,7 @@ class Product {
     required this.unitPrice,
     this.sku,
     this.stockQuantity = 0,
+    this.unit,
   });
 
   Map<String, dynamic> toJson() {
@@ -34,6 +37,7 @@ class Product {
       'unitPrice': unitPrice,
       'sku': sku,
       'stockQuantity': stockQuantity,
+      'unit': unit,
     };
   }
 
@@ -45,6 +49,7 @@ class Product {
       unitPrice: (json['unitPrice'] as num).toDouble(),
       sku: json['sku'],
       stockQuantity: (json['stockQuantity'] as num?)?.toDouble() ?? 0,
+      unit: json['unit'],
     );
   }
 }

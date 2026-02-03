@@ -19,6 +19,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   late TextEditingController _priceController;
   late TextEditingController _skuController;
   late TextEditingController _descriptionController;
+  late TextEditingController _unitController;
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _descriptionController = TextEditingController(
       text: widget.product?.description ?? '',
     );
+    _unitController = TextEditingController(text: widget.product?.unit ?? '');
   }
 
   void _save() {
@@ -44,6 +46,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         sku: _skuController.text,
         description: _descriptionController.text,
         stockQuantity: widget.product?.stockQuantity ?? 0,
+        unit: _unitController.text,
       );
 
       ref.read(productRepositoryProvider).saveProduct(product);
@@ -114,6 +117,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         decoration: const InputDecoration(
                           labelText: 'SKU (Optional)',
                           prefixIcon: Icon(Icons.tag),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _unitController,
+                        decoration: const InputDecoration(
+                          labelText: 'Unit (Optional)',
+                          prefixIcon: Icon(Icons.ad_units_outlined),
+                          hintText: 'e.g. PCS, NOS, KG',
                         ),
                       ),
                       const SizedBox(height: 20),

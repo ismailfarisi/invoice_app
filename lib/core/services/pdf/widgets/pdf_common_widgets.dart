@@ -74,16 +74,17 @@ class PdfCommonWidgets {
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.symmetric(vertical: 5),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            'Terms & Conditions',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
-          ),
-          pw.SizedBox(height: 5),
-          pw.Text(terms, style: const pw.TextStyle(fontSize: 9)),
-        ],
+      child: pw.RichText(
+        text: pw.TextSpan(
+          children: [
+            pw.TextSpan(
+              text: 'Terms & Conditions\n',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+            ),
+            pw.TextSpan(text: '\n', style: const pw.TextStyle(fontSize: 5)),
+            pw.TextSpan(text: terms, style: const pw.TextStyle(fontSize: 9)),
+          ],
+        ),
       ),
     );
   }

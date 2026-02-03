@@ -138,7 +138,7 @@ class ProformaPdfGenerator {
               _buildCell((index + 1).toString(), alignCenter: true),
               _buildCell(item.description),
               _buildCell(
-                'NOS',
+                (item.unit == null || item.unit!.isEmpty) ? 'NOS' : item.unit!,
                 alignCenter: true,
               ), // Default to NOS as per template
               _buildCell(item.quantity.toStringAsFixed(0), alignCenter: true),
@@ -175,7 +175,10 @@ class ProformaPdfGenerator {
   }
 
   static pw.Widget _buildProformaTotalSection(ProformaInvoice proforma) {
-    String amountInWords = NumberToWords.convert(proforma.total);
+    String amountInWords = NumberToWords.convert(
+      proforma.total,
+      currencyCode: proforma.currency ?? 'AED',
+    );
 
     return pw.Container(
       decoration: pw.BoxDecoration(
@@ -253,7 +256,7 @@ class ProformaPdfGenerator {
           padding: const pw.EdgeInsets.all(4),
           alignment: pw.Alignment.centerRight,
           child: pw.Text(
-            label,
+            currency != null ? '$label ($currency)' : label,
             style: pw.TextStyle(
               fontSize: 9,
               fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
@@ -266,7 +269,7 @@ class ProformaPdfGenerator {
           padding: const pw.EdgeInsets.all(4),
           alignment: pw.Alignment.center,
           child: pw.Text(
-            CurrencyFormatter.format(value, symbol: currency ?? 'AED'),
+            CurrencyFormatter.format(value, symbol: ''),
             style: pw.TextStyle(
               fontSize: 9,
               fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,

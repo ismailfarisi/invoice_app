@@ -37,12 +37,30 @@ class NumberToWords {
 
   static final _scales = ['', 'Thousand', 'Million', 'Billion', 'Trillion'];
 
+  static final Map<String, (String name, String subunit)> _currencyConfigs = {
+    'AED': ('UAE Dirham', 'Fils'),
+    'USD': ('US Dollar', 'Cents'),
+    'EUR': ('Euro', 'Cents'),
+    'GBP': ('British Pound', 'Pence'),
+    'INR': ('Indian Rupee', 'Paise'),
+  };
+
   static String convert(
     double amount, {
-    String currency = 'UAE Dirham',
-    String subunit = 'Fils',
+    String? currency,
+    String? subunit,
+    String? currencyCode,
   }) {
-    if (amount == 0) return '$currency Zero Only';
+    String finalCurrency = currency ?? 'UAE Dirham';
+    String finalSubunit = subunit ?? 'Fils';
+
+    if (currencyCode != null && _currencyConfigs.containsKey(currencyCode)) {
+      final config = _currencyConfigs[currencyCode]!;
+      finalCurrency = config.$1;
+      finalSubunit = config.$2;
+    }
+
+    if (amount == 0) return '$finalCurrency Zero Only';
 
     int integerPart = amount.floor();
     int decimalPart = ((amount - integerPart) * 100).round();
@@ -58,10 +76,10 @@ class NumberToWords {
     // Format: "UAE Dirham One Hundred and Fifty Fils Only"
     // Or if 0 fils: "UAE Dirham One Hundred Only"
 
-    String result = '$currency $words';
+    String result = '$finalCurrency $words';
 
     if (decimalPart > 0) {
-      result += ' and ${_convertNumber(decimalPart)} $subunit';
+      result += ' and ${_convertNumber(decimalPart)} $finalSubunit';
     }
 
     return '$result Only';

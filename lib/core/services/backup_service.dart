@@ -71,10 +71,7 @@ class BackupService {
 
   Future<void> importData() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-      );
+      final result = await FilePicker.platform.pickFiles(type: FileType.any);
 
       if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
@@ -96,44 +93,53 @@ class BackupService {
 
         // Restore data
         if (data['invoices'] != null) {
+          final box = Hive.box<Invoice>(_invoiceBox);
           for (var item in data['invoices']) {
-            await Hive.box<Invoice>(_invoiceBox).add(Invoice.fromJson(item));
+            final invoice = Invoice.fromJson(item);
+            await box.put(invoice.id, invoice);
           }
         }
         if (data['quotations'] != null) {
+          final box = Hive.box<Quotation>(_quotationBox);
           for (var item in data['quotations']) {
-            await Hive.box<Quotation>(
-              _quotationBox,
-            ).add(Quotation.fromJson(item));
+            final quotation = Quotation.fromJson(item);
+            await box.put(quotation.id, quotation);
           }
         }
         if (data['clients'] != null) {
+          final box = Hive.box<Client>(_clientBox);
           for (var item in data['clients']) {
-            await Hive.box<Client>(_clientBox).add(Client.fromJson(item));
+            final client = Client.fromJson(item);
+            await box.put(client.id, client);
           }
         }
         if (data['products'] != null) {
+          final box = Hive.box<Product>(_productBox);
           for (var item in data['products']) {
-            await Hive.box<Product>(_productBox).add(Product.fromJson(item));
+            final product = Product.fromJson(item);
+            await box.put(product.id, product);
           }
         }
         if (data['settings'] != null) {
+          final box = Hive.box<BusinessProfile>(_settingsBox);
           for (var item in data['settings']) {
-            await Hive.box<BusinessProfile>(
-              _settingsBox,
-            ).add(BusinessProfile.fromJson(item));
+            final profile = BusinessProfile.fromJson(item);
+            // Settings uses a fixed key 'profile'
+            await box.put('profile', profile);
           }
         }
         if (data['lpos'] != null) {
+          final box = Hive.box<Lpo>(_lpoBox);
           for (var item in data['lpos']) {
-            await Hive.box<Lpo>(_lpoBox).add(Lpo.fromJson(item));
+            final lpo = Lpo.fromJson(item);
+            await box.put(lpo.id, lpo);
           }
         }
         if (data['proformas'] != null) {
+          final box = Hive.box<ProformaInvoice>(_proformaBox);
           for (var item in data['proformas']) {
-            await Hive.box<ProformaInvoice>(
-              _proformaBox,
-            ).add(ProformaInvoice.fromJson(item));
+            final proforma = ProformaInvoice.fromJson(item);
+            await box.put(proforma.id, proforma);
           }
         }
       }

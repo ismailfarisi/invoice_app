@@ -215,9 +215,13 @@ class DeliveryNotePdfGenerator {
                   alignLeft: true,
                 ),
                 PdfCommonWidgets.buildTableCell(
-                  item.quantity.toStringAsFixed(0) + ' ' + (item.unit ?? ''),
+                  item.quantity.toStringAsFixed(0),
                 ),
-                PdfCommonWidgets.buildTableCell(item.unit ?? '-'),
+                PdfCommonWidgets.buildTableCell(
+                  (item.unit == null || item.unit!.isEmpty)
+                      ? 'NOS'
+                      : item.unit!,
+                ),
               ],
             );
           }).toList(),

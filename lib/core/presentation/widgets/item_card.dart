@@ -45,7 +45,7 @@ class ItemCard extends StatelessWidget {
                           quantity: item.quantity,
                           unitPrice: product.unitPrice,
                           total: item.quantity * product.unitPrice,
-                          unit: item.unit,
+                          unit: product.unit ?? item.unit,
                         ),
                       );
                     }
@@ -97,6 +97,25 @@ class ItemCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: item.unit,
+                  decoration: const InputDecoration(labelText: 'Unit'),
+                  onChanged: (val) {
+                    onUpdate(
+                      LineItem(
+                        description: item.description,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        total: item.total,
+                        unit: val,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 flex: 3,
                 child: TextFormField(
                   initialValue: item.unitPrice.toString(),
@@ -116,34 +135,37 @@ class ItemCard extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Total',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      Text(
-                        item.total.toStringAsFixed(2),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Total',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-              ),
-            ],
+                Text(
+                  item.total.toStringAsFixed(2),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

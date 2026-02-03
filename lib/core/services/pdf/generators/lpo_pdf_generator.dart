@@ -202,12 +202,16 @@ class LpoPdfGenerator {
                   alignLeft: true,
                 ),
                 PdfCommonWidgets.buildTableCell(
-                  item.quantity.toStringAsFixed(0) + ' ' + (item.unit ?? ''),
+                  item.quantity.toStringAsFixed(0),
                 ),
                 PdfCommonWidgets.buildTableCell(
                   item.unitPrice.toStringAsFixed(2),
                 ),
-                PdfCommonWidgets.buildTableCell(item.unit ?? '-'),
+                PdfCommonWidgets.buildTableCell(
+                  (item.unit == null || item.unit!.isEmpty)
+                      ? 'NOS'
+                      : item.unit!,
+                ),
                 PdfCommonWidgets.buildTableCell(item.total.toStringAsFixed(2)),
               ],
             );
@@ -218,15 +222,14 @@ class LpoPdfGenerator {
   }
 
   static pw.Widget _buildLpoTotalSection(Lpo lpo, BusinessProfile? profile) {
-    String amountInWords = NumberToWords.convert(lpo.total);
+    String amountInWords = NumberToWords.convert(
+      lpo.total,
+      currencyCode: lpo.currency ?? 'AED',
+    );
 
     return pw.Container(
       decoration: pw.BoxDecoration(
-        border: pw.Border(
-          left: pw.BorderSide(width: 0.5),
-          right: pw.BorderSide(width: 0.5),
-          bottom: pw.BorderSide(width: 0.5),
-        ),
+        border: pw.Border.all(color: PdfColors.black, width: 0.5),
       ),
       child: pw.Row(
         children: [
@@ -252,75 +255,71 @@ class LpoPdfGenerator {
               ),
             ),
           ),
-          pw.Container(width: 0.5, height: 40, color: PdfColors.black),
+          pw.Container(width: 0.5, height: 60, color: PdfColors.black),
           pw.Expanded(
             flex: 1,
             child: pw.Column(
               children: [
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [
-                    pw.Text('Subtotal', style: const pw.TextStyle(fontSize: 9)),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text(
-                        CurrencyFormatter.format(
-                          lpo.subtotal,
-                          symbol: lpo.currency ?? 'AED',
-                        ),
-                        style: pw.TextStyle(
-                          fontSize: 9,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                _buildTotalRow(
+                  'Subtotal',
+                  lpo.subtotal,
+                  currency: lpo.currency ?? 'AED',
                 ),
                 if ((lpo.isVatApplicable ?? true) && lpo.taxAmount > 0)
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.end,
-                    children: [
-                      pw.Text('VAT', style: const pw.TextStyle(fontSize: 9)),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          CurrencyFormatter.format(
-                            lpo.taxAmount,
-                            symbol: lpo.currency ?? 'AED',
-                          ),
-                          style: pw.TextStyle(
-                            fontSize: 9,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                  _buildTotalRow(
+                    'VAT',
+                    lpo.taxAmount,
+                    currency: lpo.currency ?? 'AED',
                   ),
-                pw.Divider(height: 1, thickness: 0.5),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [
-                    pw.Text('Total', style: const pw.TextStyle(fontSize: 9)),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text(
-                        CurrencyFormatter.format(
-                          lpo.total,
-                          symbol: lpo.currency ?? 'AED',
-                        ),
-                        style: pw.TextStyle(
-                          fontSize: 10,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                _buildTotalRow(
+                  'Total',
+                  lpo.total,
+                  currency: lpo.currency ?? 'AED',
+                  isBold: true,
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  static pw.Widget _buildTotalRow(
+    String label,
+    double value, {
+    bool isBold = false,
+    String? currency,
+  }) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.end,
+      children: [
+        pw.Container(
+          width: 80,
+          padding: const pw.EdgeInsets.all(4),
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text(
+            currency != null ? '$label ($currency)' : label,
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+            ),
+          ),
+        ),
+        pw.Container(width: 0.5, height: 20, color: PdfColors.black),
+        pw.Container(
+          width: 70,
+          padding: const pw.EdgeInsets.all(4),
+          alignment: pw.Alignment.center,
+          child: pw.Text(
+            CurrencyFormatter.format(value, symbol: ''),
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -333,6 +332,7 @@ class LpoPdfGenerator {
           children: [
             pw.Container(
               width: 200,
+              padding: const pw.EdgeInsets.only(left: 5, top: 10),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
@@ -343,6 +343,7 @@ class LpoPdfGenerator {
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
+                  pw.SizedBox(height: 5),
                   pw.Text(
                     lpo.notes ?? '',
                     style: const pw.TextStyle(fontSize: 8),
@@ -389,16 +390,20 @@ class LpoPdfGenerator {
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.symmetric(vertical: 5),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            'Terms of Delivery',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
-          ),
-          pw.SizedBox(height: 5),
-          pw.Text(lpo.terms!, style: const pw.TextStyle(fontSize: 9)),
-        ],
+      child: pw.RichText(
+        text: pw.TextSpan(
+          children: [
+            pw.TextSpan(
+              text: 'Terms of Delivery\n',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+            ),
+            pw.TextSpan(text: '\n', style: const pw.TextStyle(fontSize: 5)),
+            pw.TextSpan(
+              text: lpo.terms!,
+              style: const pw.TextStyle(fontSize: 9),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -270,12 +270,16 @@ class InvoicePdfGenerator {
                   alignLeft: true,
                 ),
                 PdfCommonWidgets.buildTableCell(
-                  item.quantity.toStringAsFixed(0) + ' ' + (item.unit ?? ''),
+                  item.quantity.toStringAsFixed(0),
                 ),
                 PdfCommonWidgets.buildTableCell(
                   item.unitPrice.toStringAsFixed(2),
                 ),
-                PdfCommonWidgets.buildTableCell(item.unit ?? '-'),
+                PdfCommonWidgets.buildTableCell(
+                  (item.unit == null || item.unit!.isEmpty)
+                      ? 'NOS'
+                      : item.unit!,
+                ),
                 PdfCommonWidgets.buildTableCell(item.total.toStringAsFixed(2)),
                 if (isVat)
                   PdfCommonWidgets.buildTableCell('10%'), // 10% for Invoice
@@ -292,15 +296,14 @@ class InvoicePdfGenerator {
     BusinessProfile? profile,
   ) {
     // Basic Number to Words
-    String amountInWords = NumberToWords.convert(invoice.total);
+    String amountInWords = NumberToWords.convert(
+      invoice.total,
+      currencyCode: invoice.currency ?? 'AED',
+    );
 
     return pw.Container(
       decoration: pw.BoxDecoration(
-        border: pw.Border(
-          left: pw.BorderSide(width: 0.5),
-          right: pw.BorderSide(width: 0.5),
-          bottom: pw.BorderSide(width: 0.5),
-        ),
+        border: pw.Border.all(color: PdfColors.black, width: 0.5),
       ),
       child: pw.Row(
         children: [
@@ -326,78 +329,71 @@ class InvoicePdfGenerator {
               ),
             ),
           ),
-          pw.Container(width: 0.5, height: 40, color: PdfColors.black),
+          pw.Container(width: 0.5, height: 60, color: PdfColors.black),
           pw.Expanded(
             flex: 1,
             child: pw.Column(
               children: [
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [
-                    pw.Text('Subtotal', style: const pw.TextStyle(fontSize: 9)),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text(
-                        CurrencyFormatter.format(
-                          invoice.subtotal,
-                          symbol: invoice.currency ?? 'AED',
-                        ),
-                        style: pw.TextStyle(
-                          fontSize: 9,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                _buildTotalRow(
+                  'Subtotal',
+                  invoice.subtotal,
+                  currency: invoice.currency ?? 'AED',
                 ),
                 if ((invoice.isVatApplicable ?? true) && invoice.taxAmount > 0)
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'VAT (10%)',
-                        style: const pw.TextStyle(fontSize: 9),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          CurrencyFormatter.format(
-                            invoice.taxAmount,
-                            symbol: invoice.currency ?? 'AED',
-                          ),
-                          style: pw.TextStyle(
-                            fontSize: 9,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                  _buildTotalRow(
+                    'VAT (10%)',
+                    invoice.taxAmount,
+                    currency: invoice.currency ?? 'AED',
                   ),
-                pw.Divider(height: 1, thickness: 0.5),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [
-                    pw.Text('Total', style: const pw.TextStyle(fontSize: 9)),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text(
-                        CurrencyFormatter.format(
-                          invoice.total,
-                          symbol: invoice.currency ?? 'AED',
-                        ),
-                        style: pw.TextStyle(
-                          fontSize: 10,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                _buildTotalRow(
+                  'Total',
+                  invoice.total,
+                  isBold: true,
+                  currency: invoice.currency ?? 'AED',
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  static pw.Widget _buildTotalRow(
+    String label,
+    double value, {
+    bool isBold = false,
+    String? currency,
+  }) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.end,
+      children: [
+        pw.Container(
+          width: 80,
+          padding: const pw.EdgeInsets.all(4),
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text(
+            currency != null ? '$label ($currency)' : label,
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+            ),
+          ),
+        ),
+        pw.Container(width: 0.5, height: 20, color: PdfColors.black),
+        pw.Container(
+          width: 70,
+          padding: const pw.EdgeInsets.all(4),
+          alignment: pw.Alignment.center,
+          child: pw.Text(
+            CurrencyFormatter.format(value, symbol: ''),
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
