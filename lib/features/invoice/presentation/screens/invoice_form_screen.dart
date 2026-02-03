@@ -30,6 +30,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   late TextEditingController _termsAndConditionsController;
   late TextEditingController _salesPersonController;
   bool _isVatApplicable = true;
+  String _currency = 'AED';
+  late TextEditingController _placeOfSupplyController;
+  late TextEditingController _deliveryNoteController;
+  late TextEditingController _paymentTermsController;
+  late TextEditingController _supplierReferenceController;
+  late TextEditingController _otherReferenceController;
+  late TextEditingController _buyersOrderNumberController;
+  DateTime? _buyersOrderDate;
 
   @override
   void initState() {
@@ -51,6 +59,26 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       text: widget.invoice?.salesPerson,
     );
     _isVatApplicable = widget.invoice?.isVatApplicable ?? true;
+    _currency = widget.invoice?.currency ?? 'AED';
+    _placeOfSupplyController = TextEditingController(
+      text: widget.invoice?.placeOfSupply,
+    );
+    _deliveryNoteController = TextEditingController(
+      text: widget.invoice?.deliveryNote,
+    );
+    _paymentTermsController = TextEditingController(
+      text: widget.invoice?.paymentTerms,
+    );
+    _supplierReferenceController = TextEditingController(
+      text: widget.invoice?.supplierReference,
+    );
+    _otherReferenceController = TextEditingController(
+      text: widget.invoice?.otherReference,
+    );
+    _buyersOrderNumberController = TextEditingController(
+      text: widget.invoice?.buyersOrderNumber,
+    );
+    _buyersOrderDate = widget.invoice?.buyersOrderDate;
   }
 
   @override
@@ -58,6 +86,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     _invoiceNumberController.dispose();
     _termsAndConditionsController.dispose();
     _salesPersonController.dispose();
+    _placeOfSupplyController.dispose();
+    _deliveryNoteController.dispose();
+    _paymentTermsController.dispose();
+    _supplierReferenceController.dispose();
+    _otherReferenceController.dispose();
+    _buyersOrderNumberController.dispose();
     super.dispose();
   }
 
@@ -106,11 +140,18 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         taxAmount: tax,
         discount: 0,
         total: total,
-
         status: _status,
         termsAndConditions: _termsAndConditionsController.text,
         salesPerson: _salesPersonController.text,
         isVatApplicable: _isVatApplicable,
+        currency: _currency,
+        placeOfSupply: _placeOfSupplyController.text,
+        deliveryNote: _deliveryNoteController.text,
+        paymentTerms: _paymentTermsController.text,
+        supplierReference: _supplierReferenceController.text,
+        otherReference: _otherReferenceController.text,
+        buyersOrderNumber: _buyersOrderNumberController.text,
+        buyersOrderDate: _buyersOrderDate,
       );
 
       await ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
@@ -218,6 +259,23 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                             val == null || val.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 20),
+                      DropdownButtonFormField<String>(
+                        value: _currency,
+                        decoration: const InputDecoration(
+                          labelText: 'Currency',
+                          prefixIcon: Icon(Icons.attach_money),
+                        ),
+                        items: ['AED', 'USD', 'EUR', 'GBP'].map((currency) {
+                          return DropdownMenuItem(
+                            value: currency,
+                            child: Text(currency),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _currency = val);
+                        },
+                      ),
+                      const SizedBox(height: 20),
                       TextFormField(
                         controller: _salesPersonController,
                         decoration: const InputDecoration(
@@ -251,6 +309,109 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         onChanged: (val) {
                           if (val != null) setState(() => _status = val);
                         },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Additional Details Section to match PDF
+                  FormSection(
+                    title: 'Additional Details',
+                    icon: Icons.note_add_outlined,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _placeOfSupplyController,
+                              decoration: const InputDecoration(
+                                labelText: 'Place of Supply',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _paymentTermsController,
+                              decoration: const InputDecoration(
+                                labelText: 'Payment Terms',
+                                hintText: 'e.g. Cash, Credit',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _deliveryNoteController,
+                        decoration: const InputDecoration(
+                          labelText: 'Delivery Note',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _supplierReferenceController,
+                              decoration: const InputDecoration(
+                                labelText: 'Supplier Ref',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _otherReferenceController,
+                              decoration: const InputDecoration(
+                                labelText: 'Other Reference',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _buyersOrderNumberController,
+                              decoration: const InputDecoration(
+                                labelText: 'Buyer\'s Order No',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate:
+                                      _buyersOrderDate ?? DateTime.now(),
+                                  firstDate: DateTime(2000),
+                                  lastDate: DateTime(2100),
+                                );
+                                if (date != null) {
+                                  setState(() => _buyersOrderDate = date);
+                                }
+                              },
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Order Date',
+                                  suffixIcon: Icon(Icons.calendar_today),
+                                ),
+                                child: Text(
+                                  _buyersOrderDate != null
+                                      ? _buyersOrderDate!.toString().split(
+                                          ' ',
+                                        )[0]
+                                      : 'Select Date',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -303,6 +464,10 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         index: index,
                         onUpdate: (newItem) => _updateItem(index, newItem),
                         onRemove: () => _removeItem(index),
+                        // Pass currency here if ItemCard uses it?
+                        // ItemCard logic for formatting might need currency but usually it just takes values.
+                        // Let's check if ItemCard displays formatted currency.
+                        // Ideally ItemCard should take a currency argument now.
                       ),
                     );
                   }),
@@ -324,12 +489,17 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                     ),
                     child: Column(
                       children: [
-                        FormTotalRow(label: 'Subtotal', value: _subtotal),
+                        FormTotalRow(
+                          label: 'Subtotal',
+                          value: _subtotal,
+                          currency: _currency,
+                        ),
                         const SizedBox(height: 8),
                         if (_isVatApplicable) ...[
                           FormTotalRow(
                             label: 'Tax (10%)',
                             value: _subtotal * 0.1,
+                            currency: _currency,
                           ),
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 12),
@@ -349,6 +519,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                             Text(
                               CurrencyFormatter.format(
                                 _isVatApplicable ? _subtotal * 1.1 : _subtotal,
+                                symbol: _currency,
                               ),
                               style: TextStyle(
                                 fontSize: 24,

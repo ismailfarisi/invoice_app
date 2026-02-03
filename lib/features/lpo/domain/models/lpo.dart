@@ -51,6 +51,14 @@ class Lpo {
   final String? salesPerson;
   @HiveField(15)
   final bool? isVatApplicable;
+  @HiveField(16)
+  final String? currency;
+  @HiveField(17)
+  final String? placeOfSupply;
+  @HiveField(18)
+  final String? paymentTerms;
+  @HiveField(19)
+  final String? otherReference;
 
   Lpo({
     required this.id,
@@ -69,6 +77,10 @@ class Lpo {
     this.termsAndConditions,
     this.salesPerson,
     this.isVatApplicable = true,
+    this.currency = 'AED',
+    this.placeOfSupply,
+    this.paymentTerms,
+    this.otherReference,
   });
 
   Map<String, dynamic> toJson() {
@@ -89,6 +101,10 @@ class Lpo {
       'termsAndConditions': termsAndConditions,
       'salesPerson': salesPerson,
       'isVatApplicable': isVatApplicable,
+      'currency': currency,
+      'placeOfSupply': placeOfSupply,
+      'paymentTerms': paymentTerms,
+      'otherReference': otherReference,
     };
   }
 
@@ -120,6 +136,10 @@ class Lpo {
       termsAndConditions: json['termsAndConditions'],
       salesPerson: json['salesPerson'],
       isVatApplicable: json['isVatApplicable'] ?? true,
+      currency: json['currency'] ?? 'AED',
+      placeOfSupply: json['placeOfSupply'],
+      paymentTerms: json['paymentTerms'],
+      otherReference: json['otherReference'],
     );
   }
 }

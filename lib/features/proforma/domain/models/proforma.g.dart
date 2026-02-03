@@ -33,13 +33,15 @@ class ProformaInvoiceAdapter extends TypeAdapter<ProformaInvoice> {
       termsAndConditions: fields[13] as String?,
       salesPerson: fields[14] as String?,
       isVatApplicable: fields[15] as bool?,
+      currency: fields[16] as String?,
+      project: fields[17] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ProformaInvoice obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(18)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -71,7 +73,11 @@ class ProformaInvoiceAdapter extends TypeAdapter<ProformaInvoice> {
       ..writeByte(14)
       ..write(obj.salesPerson)
       ..writeByte(15)
-      ..write(obj.isVatApplicable);
+      ..write(obj.isVatApplicable)
+      ..writeByte(16)
+      ..write(obj.currency)
+      ..writeByte(17)
+      ..write(obj.project);
   }
 
   @override

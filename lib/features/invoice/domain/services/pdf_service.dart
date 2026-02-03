@@ -75,9 +75,13 @@ class PdfService {
     pdf.addPage(
       pw.MultiPage(
         pageTheme: _buildPageTheme(profile, image),
+        header: (context) => _buildHeader(invoice, profile, image),
+        footer: (context) => _buildCommonPageFooter(
+          profile,
+          'This is a Computer Generated Invoice',
+        ),
         build: (pw.Context context) {
           return [
-            _buildHeader(invoice, profile, image),
             pw.SizedBox(height: 10),
             _buildInvoiceInfoBox(invoice, profile),
             _buildItemsTable(invoice),
@@ -85,7 +89,7 @@ class PdfService {
             pw.SizedBox(height: 10),
             _buildTermsAndConditions(invoice.termsAndConditions),
             pw.Spacer(),
-            _buildFooter(invoice, profile),
+            _buildInvoiceSignatures(invoice, profile),
           ];
         },
       ),
@@ -107,9 +111,10 @@ class PdfService {
     pdf.addPage(
       pw.MultiPage(
         pageTheme: _buildPageTheme(profile, image),
+        header: (context) => _buildQuotationHeader(quotation, profile, image),
+        footer: (context) => _buildDetailedPageFooter(profile),
         build: (pw.Context context) {
           return [
-            _buildQuotationHeader(quotation, profile, image),
             pw.SizedBox(height: 20),
             _buildQuotationInfoBox(quotation, profile),
             pw.SizedBox(height: 15),
@@ -121,7 +126,7 @@ class PdfService {
             _buildQuotationItemsTable(quotation),
             _buildQuotationTotalSection(quotation),
             pw.SizedBox(height: 20),
-            _buildQuotationTermsAndFooter(quotation, profile),
+            _buildQuotationClosing(quotation, profile),
           ];
         },
       ),
@@ -140,18 +145,19 @@ class PdfService {
     pdf.addPage(
       pw.MultiPage(
         pageTheme: _buildPageTheme(profile, image),
+        header: (context) => _buildLpoHeader(lpo, profile, image),
+        footer: (context) => _buildLpoPageFooter(profile),
         build: (pw.Context context) {
           return [
-            _buildLpoHeader(lpo, profile, image),
             pw.SizedBox(height: 10),
             _buildLpoInfoBox(lpo, profile),
             _buildLpoItemsTable(lpo),
             _buildLpoTotalSection(lpo, profile),
+            _buildLpoTermsOfDelivery(lpo),
             pw.SizedBox(height: 10),
             _buildTermsAndConditions(lpo.termsAndConditions),
             pw.Spacer(),
-
-            _buildLpoFooter(lpo, profile),
+            _buildLpoSignatures(lpo, profile),
           ];
         },
       ),
@@ -173,16 +179,17 @@ class PdfService {
     pdf.addPage(
       pw.MultiPage(
         pageTheme: _buildPageTheme(profile, image),
+        header: (context) => _buildProformaHeader(proforma, profile, image),
+        footer: (context) => _buildDetailedPageFooter(profile),
         build: (pw.Context context) {
           return [
-            _buildProformaHeader(proforma, profile, image),
             pw.SizedBox(height: 20),
             _buildProformaInfoBox(proforma, profile),
             pw.SizedBox(height: 15),
             _buildProformaItemsTable(proforma),
             _buildProformaTotalSection(proforma),
             pw.Spacer(),
-            _buildProformaFooter(proforma, profile),
+            _buildProformaClosing(proforma, profile),
           ];
         },
       ),
@@ -204,15 +211,15 @@ class PdfService {
     pdf.addPage(
       pw.MultiPage(
         pageTheme: _buildPageTheme(profile, image),
+        header: (context) => _buildLetterHeadHeader(profile, image),
+        footer: (context) => _buildLetterHeadFooter(profile),
         build: (pw.Context context) {
           return [
-            _buildLetterHeadHeader(profile, image),
             if (content != null && content.isNotEmpty) ...[
               pw.SizedBox(height: 20),
               pw.Text(content, style: const pw.TextStyle(fontSize: 10)),
             ],
             pw.Spacer(),
-            _buildLetterHeadFooter(profile),
           ];
         },
       ),
@@ -234,9 +241,13 @@ class PdfService {
     pdf.addPage(
       pw.MultiPage(
         pageTheme: _buildPageTheme(profile, image),
+        header: (context) => _buildDeliveryNoteHeader(invoice, profile, image),
+        footer: (context) => _buildCommonPageFooter(
+          profile,
+          'This is a Computer Generated Delivery Note',
+        ),
         build: (pw.Context context) {
           return [
-            _buildDeliveryNoteHeader(invoice, profile, image),
             pw.SizedBox(height: 10),
             _buildDeliveryNoteInfoBox(invoice, profile),
             _buildDeliveryNoteItemsTable(invoice),
@@ -252,7 +263,7 @@ class PdfService {
               pw.Text(invoice.terms!, style: const pw.TextStyle(fontSize: 8)),
             ],
             pw.Spacer(),
-            _buildDeliveryNoteFooter(invoice, profile),
+            _buildDeliveryNoteSignatures(invoice, profile),
           ];
         },
       ),
@@ -356,7 +367,7 @@ class PdfService {
                 pw.Divider(height: 1, thickness: 0.5),
                 _buildBoxRow('Buyer', invoice.client.name, isBold: true),
                 _buildBoxRow('Address', invoice.client.address),
-                _buildBoxRow('Place of Supply', 'UAE'),
+                _buildBoxRow('Place of Supply', invoice.placeOfSupply ?? 'UAE'),
               ],
             ),
           ),
@@ -404,7 +415,10 @@ class PdfService {
                       color: PdfColors.black,
                     ),
                     pw.Expanded(
-                      child: _buildGridItem('Other Reference(s)', '-'),
+                      child: _buildGridItem(
+                        'Other Reference(s)',
+                        invoice.otherReference ?? '-',
+                      ),
                     ),
                   ],
                 ),
@@ -485,7 +499,7 @@ class PdfService {
     );
   }
 
-  pw.Widget _buildDeliveryNoteFooter(
+  pw.Widget _buildDeliveryNoteSignatures(
     Invoice invoice,
     BusinessProfile? profile,
   ) {
@@ -546,20 +560,6 @@ class PdfService {
               ],
             ),
           ],
-        ),
-        pw.SizedBox(height: 20),
-        _buildCustomDivider(),
-        pw.Center(
-          child: pw.Text(
-            '${profile?.companyName ?? ""}, ${profile?.address ?? ""} | ${profile?.phone ?? ""} ${profile?.mobile != null ? "| " + profile!.mobile! : ""} ${profile?.email != null ? "| " + profile!.email! : ""} ${profile?.website != null ? "| " + profile!.website! : ""}',
-            style: const pw.TextStyle(fontSize: 8, color: PdfColors.blue900),
-          ),
-        ),
-        pw.Center(
-          child: pw.Text(
-            'This is a Computer Generated Delivery Note',
-            style: const pw.TextStyle(fontSize: 8),
-          ),
         ),
       ],
     );
@@ -659,7 +659,7 @@ class PdfService {
                 _buildBoxRow('Buyer', invoice.client.name, isBold: true),
                 _buildBoxRow('Address', invoice.client.address),
                 _buildBoxRow('TRN', invoice.client.taxId),
-                _buildBoxRow('Place of Supply', 'UAE'),
+                _buildBoxRow('Place of Supply', invoice.placeOfSupply ?? 'UAE'),
               ],
             ),
           ),
@@ -695,28 +695,44 @@ class PdfService {
                 pw.Divider(height: 1, thickness: 0.5),
                 pw.Row(
                   children: [
-                    pw.Expanded(child: _buildGridItem('Delivery Note', '-')),
+                    pw.Expanded(
+                      child: _buildGridItem(
+                        'Delivery Note',
+                        invoice.deliveryNote ?? '-',
+                      ),
+                    ),
                     pw.Container(
                       width: 0.5,
                       height: 30,
                       color: PdfColors.black,
                     ),
                     pw.Expanded(
-                      child: _buildGridItem('Mode/Terms of Payment', 'Cash'),
+                      child: _buildGridItem(
+                        'Mode/Terms of Payment',
+                        invoice.paymentTerms ?? 'Cash',
+                      ),
                     ), // Placeholder
                   ],
                 ),
                 pw.Divider(height: 1, thickness: 0.5),
                 pw.Row(
                   children: [
-                    pw.Expanded(child: _buildGridItem('Supplier\'s Ref.', '-')),
+                    pw.Expanded(
+                      child: _buildGridItem(
+                        'Supplier\'s Ref.',
+                        invoice.supplierReference ?? '-',
+                      ),
+                    ),
                     pw.Container(
                       width: 0.5,
                       height: 30,
                       color: PdfColors.black,
                     ),
                     pw.Expanded(
-                      child: _buildGridItem('Other Reference(s)', '-'),
+                      child: _buildGridItem(
+                        'Other Reference(s)',
+                        invoice.otherReference ?? '-',
+                      ),
                     ),
                   ],
                 ),
@@ -724,14 +740,26 @@ class PdfService {
                 pw.Row(
                   children: [
                     pw.Expanded(
-                      child: _buildGridItem('Buyer\'s Order No.', '-'),
+                      child: _buildGridItem(
+                        'Buyer\'s Order No.',
+                        invoice.buyersOrderNumber ?? '-',
+                      ),
                     ),
                     pw.Container(
                       width: 0.5,
                       height: 30,
                       color: PdfColors.black,
                     ),
-                    pw.Expanded(child: _buildGridItem('Dated', '-')),
+                    pw.Expanded(
+                      child: _buildGridItem(
+                        'Dated',
+                        invoice.buyersOrderDate != null
+                            ? DateFormat(
+                                'dd-MMM-yy',
+                              ).format(invoice.buyersOrderDate!)
+                            : '-',
+                      ),
+                    ),
                   ],
                 ),
                 pw.Divider(height: 1, thickness: 0.5),
@@ -933,7 +961,10 @@ class PdfService {
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
                       child: pw.Text(
-                        'AED ${invoice.subtotal.toStringAsFixed(2)}',
+                        CurrencyFormatter.format(
+                          invoice.subtotal,
+                          symbol: invoice.currency ?? 'AED',
+                        ),
                         style: pw.TextStyle(
                           fontSize: 9,
                           fontWeight: pw.FontWeight.bold,
@@ -953,7 +984,10 @@ class PdfService {
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
-                          'AED ${invoice.taxAmount.toStringAsFixed(2)}',
+                          CurrencyFormatter.format(
+                            invoice.taxAmount,
+                            symbol: invoice.currency ?? 'AED',
+                          ),
                           style: pw.TextStyle(
                             fontSize: 9,
                             fontWeight: pw.FontWeight.bold,
@@ -970,7 +1004,10 @@ class PdfService {
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
                       child: pw.Text(
-                        'AED ${invoice.total.toStringAsFixed(2)}',
+                        CurrencyFormatter.format(
+                          invoice.total,
+                          symbol: invoice.currency ?? 'AED',
+                        ),
                         style: pw.TextStyle(
                           fontSize: 10,
                           fontWeight: pw.FontWeight.bold,
@@ -987,7 +1024,7 @@ class PdfService {
     );
   }
 
-  pw.Widget _buildFooter(Invoice invoice, BusinessProfile? profile) {
+  pw.Widget _buildInvoiceSignatures(Invoice invoice, BusinessProfile? profile) {
     return pw.Column(
       children: [
         pw.Row(
@@ -1062,7 +1099,16 @@ class PdfService {
             ),
           ],
         ),
-        pw.SizedBox(height: 10),
+      ],
+    );
+  }
+
+  pw.Widget _buildCommonPageFooter(
+    BusinessProfile? profile,
+    String footerText,
+  ) {
+    return pw.Column(
+      children: [
         _buildCustomDivider(),
         pw.Center(
           child: pw.Text(
@@ -1071,10 +1117,7 @@ class PdfService {
           ),
         ),
         pw.Center(
-          child: pw.Text(
-            'This is a Computer Generated Invoice',
-            style: const pw.TextStyle(fontSize: 8),
-          ),
+          child: pw.Text(footerText, style: const pw.TextStyle(fontSize: 8)),
         ),
       ],
     );
@@ -1255,7 +1298,7 @@ class PdfService {
                 _buildBoxRow('Buyer', profile?.companyName, isBold: true),
                 _buildBoxRow('Address', profile?.address),
                 _buildBoxRow('TRN', profile?.taxId),
-                _buildBoxRow('Place of Supply', 'UAE'),
+                _buildBoxRow('Place of Supply', lpo.placeOfSupply ?? 'UAE'),
               ],
             ),
           ),
@@ -1307,36 +1350,23 @@ class PdfService {
                       color: PdfColors.black,
                     ),
                     pw.Expanded(
-                      child: _buildGridItem('Mode/Terms of Payment', 'Credit'),
+                      child: _buildGridItem(
+                        'Mode/Terms of Payment',
+                        lpo.paymentTerms ?? 'Credit',
+                      ),
                     ), // Placeholder
                   ],
                 ),
                 pw.Divider(height: 1, thickness: 0.5),
                 pw.Row(
                   children: [
-                    pw.Expanded(child: _buildGridItem('Other Reference', '-')),
+                    pw.Expanded(
+                      child: _buildGridItem(
+                        'Other Reference',
+                        lpo.otherReference ?? '-',
+                      ),
+                    ),
                   ],
-                ),
-                pw.Divider(height: 1, thickness: 0.5),
-                pw.Container(
-                  width: double.infinity,
-                  padding: const pw.EdgeInsets.all(4),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'Terms of Delivery',
-                        style: pw.TextStyle(fontSize: 8),
-                      ),
-                      pw.Text(
-                        lpo.terms ?? '-',
-                        style: pw.TextStyle(
-                          fontSize: 9,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -1447,7 +1477,10 @@ class PdfService {
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
                       child: pw.Text(
-                        'AED ${lpo.subtotal.toStringAsFixed(2)}',
+                        CurrencyFormatter.format(
+                          lpo.subtotal,
+                          symbol: lpo.currency ?? 'AED',
+                        ),
                         style: pw.TextStyle(
                           fontSize: 9,
                           fontWeight: pw.FontWeight.bold,
@@ -1464,7 +1497,10 @@ class PdfService {
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
-                          'AED ${lpo.taxAmount.toStringAsFixed(2)}',
+                          CurrencyFormatter.format(
+                            lpo.taxAmount,
+                            symbol: lpo.currency ?? 'AED',
+                          ),
                           style: pw.TextStyle(
                             fontSize: 9,
                             fontWeight: pw.FontWeight.bold,
@@ -1481,7 +1517,10 @@ class PdfService {
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
                       child: pw.Text(
-                        'AED ${lpo.total.toStringAsFixed(2)}',
+                        CurrencyFormatter.format(
+                          lpo.total,
+                          symbol: lpo.currency ?? 'AED',
+                        ),
                         style: pw.TextStyle(
                           fontSize: 10,
                           fontWeight: pw.FontWeight.bold,
@@ -1498,7 +1537,7 @@ class PdfService {
     );
   }
 
-  pw.Widget _buildLpoFooter(Lpo lpo, BusinessProfile? profile) {
+  pw.Widget _buildLpoSignatures(Lpo lpo, BusinessProfile? profile) {
     return pw.Column(
       children: [
         pw.Row(
@@ -1554,6 +1593,32 @@ class PdfService {
             ),
           ],
         ),
+      ],
+    );
+  }
+
+  pw.Widget _buildLpoTermsOfDelivery(Lpo lpo) {
+    if (lpo.terms == null || lpo.terms!.isEmpty) return pw.Container();
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.symmetric(vertical: 5),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'Terms of Delivery',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+          ),
+          pw.SizedBox(height: 5),
+          pw.Text(lpo.terms!, style: const pw.TextStyle(fontSize: 9)),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildLpoPageFooter(BusinessProfile? profile) {
+    return pw.Column(
+      children: [
         pw.SizedBox(height: 10),
         pw.Divider(color: PdfColors.blue900),
         pw.Center(
@@ -1818,11 +1883,24 @@ class PdfService {
             flex: 1,
             child: pw.Column(
               children: [
-                _buildTotalRow('TOTAL', quotation.subtotal),
+                _buildTotalRow(
+                  'TOTAL',
+                  quotation.subtotal,
+                  currency: quotation.currency ?? 'AED',
+                ),
                 if ((quotation.isVatApplicable ?? true) &&
                     quotation.taxAmount > 0)
-                  _buildTotalRow('VAT', quotation.taxAmount),
-                _buildTotalRow('NET', quotation.total, isBold: true),
+                  _buildTotalRow(
+                    'VAT',
+                    quotation.taxAmount,
+                    currency: quotation.currency ?? 'AED',
+                  ),
+                _buildTotalRow(
+                  'NET',
+                  quotation.total,
+                  isBold: true,
+                  currency: quotation.currency ?? 'AED',
+                ),
               ],
             ),
           ),
@@ -1831,7 +1909,12 @@ class PdfService {
     );
   }
 
-  pw.Widget _buildTotalRow(String label, double value, {bool isBold = false}) {
+  pw.Widget _buildTotalRow(
+    String label,
+    double value, {
+    bool isBold = false,
+    String? currency,
+  }) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.end,
       children: [
@@ -1853,7 +1936,7 @@ class PdfService {
           padding: const pw.EdgeInsets.all(4),
           alignment: pw.Alignment.center,
           child: pw.Text(
-            value.toStringAsFixed(2),
+            CurrencyFormatter.format(value, symbol: currency ?? 'AED'),
             style: pw.TextStyle(
               fontSize: 9,
               fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
@@ -1864,7 +1947,7 @@ class PdfService {
     );
   }
 
-  pw.Widget _buildQuotationTermsAndFooter(
+  pw.Widget _buildQuotationClosing(
     Quotation quotation,
     BusinessProfile? profile,
   ) {
@@ -1907,7 +1990,13 @@ class PdfService {
               : '${profile?.companyName ?? ""}\nContact: ${profile?.mobile ?? profile?.phone ?? ""}',
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
         ),
-        pw.SizedBox(height: 10),
+      ],
+    );
+  }
+
+  pw.Widget _buildDetailedPageFooter(BusinessProfile? profile) {
+    return pw.Column(
+      children: [
         _buildCustomDivider(),
         pw.SizedBox(height: 10),
         pw.Center(
@@ -2036,7 +2125,7 @@ class PdfService {
           ),
           _buildInfoRow('Proforma No:', proforma.proformaNumber),
           _buildInfoRow('Contact:', proforma.client.phone ?? ''),
-          // _buildInfoRow('Project:', proforma.project ?? ''), // If added to model
+          _buildInfoRow('Project:', proforma.project ?? '-'),
           _buildInfoRow(
             'From:',
             '${proforma.salesPerson ?? profile?.companyName ?? ""}, Contact: ${profile?.mobile ?? profile?.phone ?? ""}',
@@ -2131,11 +2220,24 @@ class PdfService {
             flex: 1,
             child: pw.Column(
               children: [
-                _buildTotalRow('TOTAL', proforma.subtotal),
+                _buildTotalRow(
+                  'TOTAL',
+                  proforma.subtotal,
+                  currency: proforma.currency ?? 'AED',
+                ),
                 if ((proforma.isVatApplicable ?? true) &&
                     proforma.taxAmount > 0)
-                  _buildTotalRow('VAT', proforma.taxAmount),
-                _buildTotalRow('NET', proforma.total, isBold: true),
+                  _buildTotalRow(
+                    'VAT',
+                    proforma.taxAmount,
+                    currency: proforma.currency ?? 'AED',
+                  ),
+                _buildTotalRow(
+                  'NET',
+                  proforma.total,
+                  isBold: true,
+                  currency: proforma.currency ?? 'AED',
+                ),
               ],
             ),
           ),
@@ -2144,7 +2246,7 @@ class PdfService {
     );
   }
 
-  pw.Widget _buildProformaFooter(
+  pw.Widget _buildProformaClosing(
     ProformaInvoice proforma,
     BusinessProfile? profile,
   ) {
@@ -2186,30 +2288,6 @@ class PdfService {
               ? '${proforma.salesPerson}\nContact: ${profile?.mobile ?? profile?.phone ?? ""}'
               : '${profile?.companyName ?? ""}\nContact: ${profile?.mobile ?? profile?.phone ?? ""}',
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
-        ),
-        pw.SizedBox(height: 10),
-        _buildCustomDivider(),
-        pw.SizedBox(height: 10),
-        pw.Center(
-          child: pw.Column(
-            children: [
-              pw.Text(
-                '${profile?.companyName ?? ""},',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              pw.Text(
-                '${profile?.address ?? ""} | Contact & WhatsApp : ${profile?.mobile ?? profile?.phone ?? ""}',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              pw.Text(
-                'For enquiries, kindly mail to : ${profile?.email ?? ""} | web : ${profile?.website ?? ""}',
-                style: const pw.TextStyle(
-                  fontSize: 10,
-                  color: PdfColors.blue900,
-                ),
-              ),
-            ],
-          ),
         ),
       ],
     );

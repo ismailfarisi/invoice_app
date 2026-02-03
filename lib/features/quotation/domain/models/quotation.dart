@@ -57,6 +57,8 @@ class Quotation {
     17,
   ) // Keeping original index to avoid conflict with @HiveField(15) for termsAndConditions
   final bool? isVatApplicable;
+  @HiveField(18)
+  final String? currency;
 
   Quotation({
     required this.id,
@@ -77,6 +79,7 @@ class Quotation {
     this.termsAndConditions,
     this.salesPerson,
     this.isVatApplicable = true,
+    this.currency = 'AED',
   });
 
   // Helper to convert to Invoice
@@ -97,6 +100,7 @@ class Quotation {
       termsAndConditions: termsAndConditions,
       salesPerson: salesPerson,
       isVatApplicable: isVatApplicable,
+      currency: currency,
     );
   }
 
@@ -120,6 +124,7 @@ class Quotation {
       'termsAndConditions': termsAndConditions,
       'salesPerson': salesPerson,
       'isVatApplicable': isVatApplicable,
+      'currency': currency,
     };
   }
 
@@ -153,6 +158,7 @@ class Quotation {
       termsAndConditions: json['termsAndConditions'],
       salesPerson: json['salesPerson'],
       isVatApplicable: json['isVatApplicable'] ?? true,
+      currency: json['currency'] ?? 'AED',
     );
   }
 }

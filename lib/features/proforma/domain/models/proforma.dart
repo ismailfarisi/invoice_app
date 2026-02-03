@@ -51,6 +51,10 @@ class ProformaInvoice {
   final String? salesPerson;
   @HiveField(15)
   final bool? isVatApplicable;
+  @HiveField(16)
+  final String? currency;
+  @HiveField(17)
+  final String? project;
 
   ProformaInvoice({
     required this.id,
@@ -69,6 +73,8 @@ class ProformaInvoice {
     this.termsAndConditions,
     this.salesPerson,
     this.isVatApplicable = true,
+    this.currency = 'AED',
+    this.project,
   });
 
   // Helper to convert to Invoice
@@ -89,6 +95,7 @@ class ProformaInvoice {
       termsAndConditions: termsAndConditions,
       salesPerson: salesPerson,
       isVatApplicable: isVatApplicable,
+      currency: currency,
     );
   }
 
@@ -110,6 +117,8 @@ class ProformaInvoice {
       'termsAndConditions': termsAndConditions,
       'salesPerson': salesPerson,
       'isVatApplicable': isVatApplicable,
+      'currency': currency,
+      'project': project,
     };
   }
 
@@ -141,6 +150,8 @@ class ProformaInvoice {
       termsAndConditions: json['termsAndConditions'],
       salesPerson: json['salesPerson'],
       isVatApplicable: json['isVatApplicable'] ?? true,
+      currency: json['currency'] ?? 'AED',
+      project: json['project'],
     );
   }
 }

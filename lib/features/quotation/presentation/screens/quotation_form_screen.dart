@@ -35,6 +35,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
   late TextEditingController _termsAndConditionsController;
   late TextEditingController _salesPersonController;
   bool _isVatApplicable = true;
+  String _currency = 'AED';
 
   @override
   void initState() {
@@ -60,6 +61,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
       text: widget.quotation?.salesPerson,
     );
     _isVatApplicable = widget.quotation?.isVatApplicable ?? true;
+    _currency = widget.quotation?.currency ?? 'AED';
   }
 
   @override
@@ -126,6 +128,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
         termsAndConditions: _termsAndConditionsController.text,
         salesPerson: _salesPersonController.text,
         isVatApplicable: _isVatApplicable,
+        currency: _currency,
       );
 
       await ref.read(quotationRepositoryProvider).saveQuotation(quotation);
@@ -134,7 +137,8 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
   }
 
   Future<void> _convertToInvoice() async {
-    final invoice = widget.quotation!.toInvoice();
+    final invoice = widget.quotation!
+        .toInvoice(); // Note: toInvoice might need currency update if not done yet
     await ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -240,6 +244,23 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                   ),
                   validator: (val) =>
                       val == null || val.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  value: _currency,
+                  decoration: const InputDecoration(
+                    labelText: 'Currency',
+                    prefixIcon: Icon(Icons.attach_money),
+                  ),
+                  items: ['AED', 'USD', 'EUR', 'GBP'].map((currency) {
+                    return DropdownMenuItem(
+                      value: currency,
+                      child: Text(currency),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _currency = val);
+                  },
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -372,10 +393,18 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
               ),
               child: Column(
                 children: [
-                  FormTotalRow(label: 'Subtotal', value: _subtotal),
+                  FormTotalRow(
+                    label: 'Subtotal',
+                    value: _subtotal,
+                    currency: _currency,
+                  ),
                   const SizedBox(height: 8),
                   if (_isVatApplicable) ...[
-                    FormTotalRow(label: 'Tax (10%)', value: _subtotal * 0.1),
+                    FormTotalRow(
+                      label: 'Tax (10%)',
+                      value: _subtotal * 0.1,
+                      currency: _currency,
+                    ),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
                       child: Divider(),
@@ -394,6 +423,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                       Text(
                         CurrencyFormatter.format(
                           _isVatApplicable ? _subtotal * 1.1 : _subtotal,
+                          symbol: _currency,
                         ),
                         style: TextStyle(
                           fontSize: 24,

@@ -37,6 +37,22 @@ class Invoice {
   final String? salesPerson;
   @HiveField(15)
   final bool? isVatApplicable;
+  @HiveField(16)
+  final String? currency;
+  @HiveField(17)
+  final String? placeOfSupply;
+  @HiveField(18)
+  final String? deliveryNote;
+  @HiveField(19)
+  final String? paymentTerms;
+  @HiveField(20)
+  final String? supplierReference;
+  @HiveField(21)
+  final String? otherReference;
+  @HiveField(22)
+  final String? buyersOrderNumber;
+  @HiveField(23)
+  final DateTime? buyersOrderDate;
 
   Invoice({
     required this.id,
@@ -55,6 +71,14 @@ class Invoice {
     this.termsAndConditions,
     this.salesPerson,
     this.isVatApplicable = true,
+    this.currency = 'AED',
+    this.placeOfSupply,
+    this.deliveryNote,
+    this.paymentTerms,
+    this.supplierReference,
+    this.otherReference,
+    this.buyersOrderNumber,
+    this.buyersOrderDate,
   });
   Map<String, dynamic> toJson() {
     return {
@@ -74,6 +98,14 @@ class Invoice {
       'termsAndConditions': termsAndConditions,
       'salesPerson': salesPerson,
       'isVatApplicable': isVatApplicable,
+      'currency': currency,
+      'placeOfSupply': placeOfSupply,
+      'deliveryNote': deliveryNote,
+      'paymentTerms': paymentTerms,
+      'supplierReference': supplierReference,
+      'otherReference': otherReference,
+      'buyersOrderNumber': buyersOrderNumber,
+      'buyersOrderDate': buyersOrderDate?.toIso8601String(),
     };
   }
 
@@ -103,6 +135,16 @@ class Invoice {
       termsAndConditions: json['termsAndConditions'],
       salesPerson: json['salesPerson'],
       isVatApplicable: json['isVatApplicable'] ?? true,
+      currency: json['currency'] ?? 'AED',
+      placeOfSupply: json['placeOfSupply'],
+      deliveryNote: json['deliveryNote'],
+      paymentTerms: json['paymentTerms'],
+      supplierReference: json['supplierReference'],
+      otherReference: json['otherReference'],
+      buyersOrderNumber: json['buyersOrderNumber'],
+      buyersOrderDate: json['buyersOrderDate'] != null
+          ? DateTime.parse(json['buyersOrderDate'])
+          : null,
     );
   }
 }

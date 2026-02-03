@@ -33,13 +33,21 @@ class InvoiceAdapter extends TypeAdapter<Invoice> {
       termsAndConditions: fields[13] as String?,
       salesPerson: fields[14] as String?,
       isVatApplicable: fields[15] as bool?,
+      currency: fields[16] as String?,
+      placeOfSupply: fields[17] as String?,
+      deliveryNote: fields[18] as String?,
+      paymentTerms: fields[19] as String?,
+      supplierReference: fields[20] as String?,
+      otherReference: fields[21] as String?,
+      buyersOrderNumber: fields[22] as String?,
+      buyersOrderDate: fields[23] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Invoice obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(24)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -71,7 +79,23 @@ class InvoiceAdapter extends TypeAdapter<Invoice> {
       ..writeByte(14)
       ..write(obj.salesPerson)
       ..writeByte(15)
-      ..write(obj.isVatApplicable);
+      ..write(obj.isVatApplicable)
+      ..writeByte(16)
+      ..write(obj.currency)
+      ..writeByte(17)
+      ..write(obj.placeOfSupply)
+      ..writeByte(18)
+      ..write(obj.deliveryNote)
+      ..writeByte(19)
+      ..write(obj.paymentTerms)
+      ..writeByte(20)
+      ..write(obj.supplierReference)
+      ..writeByte(21)
+      ..write(obj.otherReference)
+      ..writeByte(22)
+      ..write(obj.buyersOrderNumber)
+      ..writeByte(23)
+      ..write(obj.buyersOrderDate);
   }
 
   @override

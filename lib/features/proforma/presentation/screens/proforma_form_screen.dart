@@ -30,6 +30,8 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
   late TextEditingController _termsAndConditionsController;
   late TextEditingController _salesPersonController;
   bool _isVatApplicable = true;
+  String _currency = 'AED';
+  late TextEditingController _projectController;
 
   @override
   void initState() {
@@ -50,6 +52,8 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
       text: widget.proforma?.salesPerson,
     );
     _isVatApplicable = widget.proforma?.isVatApplicable ?? true;
+    _currency = widget.proforma?.currency ?? 'AED';
+    _projectController = TextEditingController(text: widget.proforma?.project);
   }
 
   @override
@@ -58,6 +62,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
 
     _termsAndConditionsController.dispose();
     _salesPersonController.dispose();
+    _projectController.dispose();
     super.dispose();
   }
 
@@ -118,6 +123,8 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
         termsAndConditions: _termsAndConditionsController.text,
         salesPerson: _salesPersonController.text,
         isVatApplicable: _isVatApplicable,
+        currency: _currency,
+        project: _projectController.text,
       );
 
       await ref.read(proformaListProvider.notifier).saveProforma(proforma);
@@ -221,6 +228,31 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                             val == null || val.isEmpty ? 'Required' : null,
                       ),
 
+                      const SizedBox(height: 20),
+                      DropdownButtonFormField<String>(
+                        value: _currency,
+                        decoration: const InputDecoration(
+                          labelText: 'Currency',
+                          prefixIcon: Icon(Icons.attach_money),
+                        ),
+                        items: ['AED', 'USD', 'EUR', 'GBP'].map((currency) {
+                          return DropdownMenuItem(
+                            value: currency,
+                            child: Text(currency),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _currency = val);
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _projectController,
+                        decoration: const InputDecoration(
+                          labelText: 'Project',
+                          prefixIcon: Icon(Icons.work_outline),
+                        ),
+                      ),
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _salesPersonController,
@@ -328,14 +360,23 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                     ),
                     child: Column(
                       children: [
-                        FormTotalRow(label: 'Subtotal', value: _subtotal),
+                        FormTotalRow(
+                          label: 'Subtotal',
+                          value: _subtotal,
+                          currency: _currency,
+                        ),
                         const SizedBox(height: 8),
-                        FormTotalRow(label: 'Subtotal', value: _subtotal),
+                        FormTotalRow(
+                          label: 'Subtotal',
+                          value: _subtotal,
+                          currency: _currency,
+                        ),
                         const SizedBox(height: 8),
                         if (_isVatApplicable) ...[
                           FormTotalRow(
                             label: 'Tax (5%)',
                             value: _subtotal * 0.05,
+                            currency: _currency,
                           ),
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 12),
@@ -355,6 +396,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                             Text(
                               CurrencyFormatter.format(
                                 _isVatApplicable ? _subtotal * 1.05 : _subtotal,
+                                symbol: _currency,
                               ),
                               style: TextStyle(
                                 fontSize: 24,

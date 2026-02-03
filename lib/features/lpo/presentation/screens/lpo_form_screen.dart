@@ -31,6 +31,11 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
   late TextEditingController _termsAndConditionsController;
   late TextEditingController _salesPersonController;
   bool _isVatApplicable = true;
+  String _currency = 'AED';
+  late TextEditingController _placeOfSupplyController;
+  late TextEditingController _paymentTermsController;
+  late TextEditingController _otherReferenceController;
+  late TextEditingController _termsOfDeliveryController;
 
   @override
   void initState() {
@@ -51,14 +56,28 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
       text: widget.lpo?.salesPerson,
     );
     _isVatApplicable = widget.lpo?.isVatApplicable ?? true;
+    _currency = widget.lpo?.currency ?? 'AED';
+    _placeOfSupplyController = TextEditingController(
+      text: widget.lpo?.placeOfSupply,
+    );
+    _paymentTermsController = TextEditingController(
+      text: widget.lpo?.paymentTerms,
+    );
+    _otherReferenceController = TextEditingController(
+      text: widget.lpo?.otherReference,
+    );
+    _termsOfDeliveryController = TextEditingController(text: widget.lpo?.terms);
   }
 
   @override
   void dispose() {
     _lpoNumberController.dispose();
-
     _termsAndConditionsController.dispose();
     _salesPersonController.dispose();
+    _placeOfSupplyController.dispose();
+    _paymentTermsController.dispose();
+    _otherReferenceController.dispose();
+    _termsOfDeliveryController.dispose();
     super.dispose();
   }
 
@@ -113,11 +132,15 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
         taxAmount: tax,
         discount: 0,
         total: total,
-
         status: _status,
         termsAndConditions: _termsAndConditionsController.text,
         salesPerson: _salesPersonController.text,
         isVatApplicable: _isVatApplicable,
+        currency: _currency,
+        placeOfSupply: _placeOfSupplyController.text,
+        paymentTerms: _paymentTermsController.text,
+        otherReference: _otherReferenceController.text,
+        terms: _termsOfDeliveryController.text,
       );
 
       await ref.read(lpoListProvider.notifier).saveLpo(lpo);
@@ -221,6 +244,23 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                       ),
 
                       const SizedBox(height: 20),
+                      DropdownButtonFormField<String>(
+                        value: _currency,
+                        decoration: const InputDecoration(
+                          labelText: 'Currency',
+                          prefixIcon: Icon(Icons.attach_money),
+                        ),
+                        items: ['AED', 'USD', 'EUR', 'GBP'].map((currency) {
+                          return DropdownMenuItem(
+                            value: currency,
+                            child: Text(currency),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _currency = val);
+                        },
+                      ),
+                      const SizedBox(height: 20),
                       TextFormField(
                         controller: _salesPersonController,
                         decoration: const InputDecoration(
@@ -254,6 +294,58 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                         onChanged: (val) {
                           if (val != null) setState(() => _status = val);
                         },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Additional Details for LPO
+                  FormSection(
+                    title: 'Additional Details',
+                    icon: Icons.note_add_outlined,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _placeOfSupplyController,
+                              decoration: const InputDecoration(
+                                labelText: 'Place of Supply',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _paymentTermsController,
+                              decoration: const InputDecoration(
+                                labelText: 'Payment Terms',
+                                hintText: 'e.g. Credit',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _otherReferenceController,
+                              decoration: const InputDecoration(
+                                labelText: 'Other Reference',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _termsOfDeliveryController,
+                        decoration: const InputDecoration(
+                          labelText: 'Terms of Delivery',
+                        ),
+                        maxLines: 3,
                       ),
                     ],
                   ),
@@ -328,14 +420,17 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                     ),
                     child: Column(
                       children: [
-                        FormTotalRow(label: 'Subtotal', value: _subtotal),
-                        const SizedBox(height: 8),
-                        FormTotalRow(label: 'Subtotal', value: _subtotal),
+                        FormTotalRow(
+                          label: 'Subtotal',
+                          value: _subtotal,
+                          currency: _currency,
+                        ),
                         const SizedBox(height: 8),
                         if (_isVatApplicable) ...[
                           FormTotalRow(
                             label: 'Tax (5%)',
                             value: _subtotal * 0.05,
+                            currency: _currency,
                           ),
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 12),
@@ -355,6 +450,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                             Text(
                               CurrencyFormatter.format(
                                 _isVatApplicable ? _subtotal * 1.05 : _subtotal,
+                                symbol: _currency,
                               ),
                               style: TextStyle(
                                 fontSize: 24,
