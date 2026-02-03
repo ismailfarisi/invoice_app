@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
-import 'package:flutter_invoice_app/features/invoice/domain/services/pdf_service.dart';
+import 'package:flutter_invoice_app/core/services/pdf/pdf_service.dart';
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart'; // Add import
 import 'package:printing/printing.dart';
 
@@ -16,7 +16,8 @@ class PdfPreviewScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Invoice Preview')),
       body: PdfPreview(
-        build: (format) => PdfService().generateInvoice(invoice, profile: profile),
+        build: (format) =>
+            PdfService().generateInvoice(invoice, profile: profile),
         canChangeOrientation: false,
         canDebug: false,
       ),

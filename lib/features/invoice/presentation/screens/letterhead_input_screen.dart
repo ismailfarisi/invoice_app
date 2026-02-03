@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_invoice_app/features/invoice/domain/services/pdf_service.dart';
+import 'package:flutter_invoice_app/core/services/pdf/pdf_service.dart';
 import 'package:flutter_invoice_app/features/invoice/presentation/screens/generic_pdf_preview_screen.dart';
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
 
