@@ -9,7 +9,7 @@ import 'package:flutter_invoice_app/features/product/presentation/widgets/produc
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
 import 'package:uuid/uuid.dart';
 
-// NOTE: We'll add PDF Preview later once the service is updated
+import 'package:flutter_invoice_app/features/lpo/presentation/screens/lpo_pdf_preview_screen.dart';
 
 class LpoFormScreen extends ConsumerStatefulWidget {
   final Lpo? lpo;
@@ -140,7 +140,12 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
             IconButton(
               icon: const Icon(Icons.picture_as_pdf_outlined),
               onPressed: () {
-                // Navigate to LPO Preview
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LpoPdfPreviewScreen(lpo: widget.lpo!),
+                  ),
+                );
               },
             ),
           const SizedBox(width: 8),
