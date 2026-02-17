@@ -24,6 +24,12 @@ class BusinessProfile {
   final String? website;
   @HiveField(9)
   final String? mobile;
+  @HiveField(10)
+  final bool isSynced;
+  @HiveField(11)
+  final DateTime? updatedAt;
+  @HiveField(12)
+  final String? userId;
 
   BusinessProfile({
     required this.companyName,
@@ -36,6 +42,9 @@ class BusinessProfile {
     this.bankDetails,
     this.website,
     this.mobile,
+    this.isSynced = false,
+    this.updatedAt,
+    this.userId,
   });
 
   Map<String, dynamic> toJson() {
@@ -50,6 +59,9 @@ class BusinessProfile {
       'bankDetails': bankDetails,
       'website': website,
       'mobile': mobile,
+      'isSynced': isSynced,
+      'updatedAt': updatedAt?.toIso8601String(),
+      'user_id': userId,
     };
   }
 
@@ -65,6 +77,11 @@ class BusinessProfile {
       bankDetails: json['bankDetails'],
       website: json['website'],
       mobile: json['mobile'],
+      isSynced: json['isSynced'] ?? false,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      userId: json['user_id'],
     );
   }
 }

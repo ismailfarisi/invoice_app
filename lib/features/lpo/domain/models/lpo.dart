@@ -59,6 +59,12 @@ class Lpo {
   final String? paymentTerms;
   @HiveField(19)
   final String? otherReference;
+  @HiveField(20)
+  final bool isSynced;
+  @HiveField(21)
+  final DateTime? updatedAt;
+  @HiveField(22)
+  final String? userId;
 
   Lpo({
     required this.id,
@@ -81,6 +87,9 @@ class Lpo {
     this.placeOfSupply,
     this.paymentTerms,
     this.otherReference,
+    this.isSynced = false,
+    this.updatedAt,
+    this.userId,
   });
 
   Map<String, dynamic> toJson() {
@@ -105,6 +114,10 @@ class Lpo {
       'placeOfSupply': placeOfSupply,
       'paymentTerms': paymentTerms,
       'otherReference': otherReference,
+      'isSynced': isSynced,
+      'updatedAt': updatedAt?.toIso8601String(),
+      'user_id': userId,
+      'vendor_id': vendor.id,
     };
   }
 
@@ -140,6 +153,11 @@ class Lpo {
       placeOfSupply: json['placeOfSupply'],
       paymentTerms: json['paymentTerms'],
       otherReference: json['otherReference'],
+      isSynced: json['isSynced'] ?? false,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      userId: json['user_id'],
     );
   }
 }

@@ -37,13 +37,16 @@ class LpoAdapter extends TypeAdapter<Lpo> {
       placeOfSupply: fields[17] as String?,
       paymentTerms: fields[18] as String?,
       otherReference: fields[19] as String?,
+      isSynced: fields[20] as bool,
+      updatedAt: fields[21] as DateTime?,
+      userId: fields[22] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Lpo obj) {
     writer
-      ..writeByte(20)
+      ..writeByte(23)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -83,7 +86,13 @@ class LpoAdapter extends TypeAdapter<Lpo> {
       ..writeByte(18)
       ..write(obj.paymentTerms)
       ..writeByte(19)
-      ..write(obj.otherReference);
+      ..write(obj.otherReference)
+      ..writeByte(20)
+      ..write(obj.isSynced)
+      ..writeByte(21)
+      ..write(obj.updatedAt)
+      ..writeByte(22)
+      ..write(obj.userId);
   }
 
   @override

@@ -41,13 +41,16 @@ class InvoiceAdapter extends TypeAdapter<Invoice> {
       otherReference: fields[21] as String?,
       buyersOrderNumber: fields[22] as String?,
       buyersOrderDate: fields[23] as DateTime?,
+      isSynced: fields[24] as bool,
+      updatedAt: fields[25] as DateTime?,
+      userId: fields[26] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Invoice obj) {
     writer
-      ..writeByte(24)
+      ..writeByte(27)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -95,7 +98,13 @@ class InvoiceAdapter extends TypeAdapter<Invoice> {
       ..writeByte(22)
       ..write(obj.buyersOrderNumber)
       ..writeByte(23)
-      ..write(obj.buyersOrderDate);
+      ..write(obj.buyersOrderDate)
+      ..writeByte(24)
+      ..write(obj.isSynced)
+      ..writeByte(25)
+      ..write(obj.updatedAt)
+      ..writeByte(26)
+      ..write(obj.userId);
   }
 
   @override
@@ -127,13 +136,16 @@ class ClientAdapter extends TypeAdapter<Client> {
       phone: fields[4] as String?,
       contactPerson: fields[5] as String?,
       taxId: fields[6] as String?,
+      isSynced: fields[7] as bool,
+      updatedAt: fields[8] as DateTime?,
+      userId: fields[9] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Client obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -147,7 +159,13 @@ class ClientAdapter extends TypeAdapter<Client> {
       ..writeByte(5)
       ..write(obj.contactPerson)
       ..writeByte(6)
-      ..write(obj.taxId);
+      ..write(obj.taxId)
+      ..writeByte(7)
+      ..write(obj.isSynced)
+      ..writeByte(8)
+      ..write(obj.updatedAt)
+      ..writeByte(9)
+      ..write(obj.userId);
   }
 
   @override

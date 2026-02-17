@@ -27,13 +27,16 @@ class BusinessProfileAdapter extends TypeAdapter<BusinessProfile> {
       bankDetails: fields[7] as String?,
       website: fields[8] as String?,
       mobile: fields[9] as String?,
+      isSynced: fields[10] as bool,
+      updatedAt: fields[11] as DateTime?,
+      userId: fields[12] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, BusinessProfile obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.companyName)
       ..writeByte(1)
@@ -53,7 +56,13 @@ class BusinessProfileAdapter extends TypeAdapter<BusinessProfile> {
       ..writeByte(8)
       ..write(obj.website)
       ..writeByte(9)
-      ..write(obj.mobile);
+      ..write(obj.mobile)
+      ..writeByte(10)
+      ..write(obj.isSynced)
+      ..writeByte(11)
+      ..write(obj.updatedAt)
+      ..writeByte(12)
+      ..write(obj.userId);
   }
 
   @override
