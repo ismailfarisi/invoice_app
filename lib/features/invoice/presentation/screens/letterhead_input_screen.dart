@@ -28,6 +28,7 @@ class _LetterHeadInputScreenState extends ConsumerState<LetterHeadInputScreen> {
       MaterialPageRoute(
         builder: (_) => GenericPdfPreviewScreen(
           title: 'Letter Head Preview',
+          pdfFileName: 'Letterhead.pdf',
           buildEvent: (format) => PdfService().generateLetterHead(
             profile: profile,
             content: _contentController.text,

@@ -5,6 +5,7 @@ import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dar
 import 'package:flutter_invoice_app/features/invoice/presentation/screens/pdf_preview_screen.dart';
 import 'package:flutter_invoice_app/features/client/presentation/widgets/client_selector.dart'; // Add import
 import 'package:flutter_invoice_app/features/client/presentation/screens/client_form_screen.dart';
+import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
 
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
 import 'package:uuid/uuid.dart';
@@ -25,7 +26,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   Client? _selectedClient; // Changed from controller
   late TextEditingController _invoiceNumberController;
   late List<LineItem> _items;
-  late DateTime _date;
+  DateTime? _date;
   late InvoiceStatus _status;
   late TextEditingController _termsAndConditionsController;
   late TextEditingController _salesPersonController;
@@ -38,6 +39,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   late TextEditingController _otherReferenceController;
   late TextEditingController _buyersOrderNumberController;
   DateTime? _buyersOrderDate;
+  double _vatRate = 5.0;
 
   @override
   void initState() {
@@ -50,7 +52,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           'INV-${DateTime.now().millisecondsSinceEpoch}',
     );
     _items = widget.invoice?.items.toList() ?? [];
-    _date = widget.invoice?.date ?? DateTime.now();
+    _date = widget.invoice?.date;
     _status = widget.invoice?.status ?? InvoiceStatus.draft;
     _termsAndConditionsController = TextEditingController(
       text: widget.invoice?.termsAndConditions,
@@ -79,6 +81,10 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       text: widget.invoice?.buyersOrderNumber,
     );
     _buyersOrderDate = widget.invoice?.buyersOrderDate;
+
+    // Load Default VAT Rate from settings
+    final profile = ref.read(businessProfileRepositoryProvider).getProfile();
+    _vatRate = profile?.defaultVatRate ?? 5.0;
   }
 
   @override
@@ -119,6 +125,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
 
   Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
+      if (_selectedClient == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Please select a client')));
+        return;
+      }
       if (_items.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please add at least one item')),
@@ -127,7 +139,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       }
 
       final subtotal = _subtotal;
-      final tax = _isVatApplicable ? subtotal * 0.1 : 0.0;
+      final tax = _isVatApplicable ? subtotal * (_vatRate / 100) : 0.0;
       final total = subtotal + tax;
 
       final invoice = Invoice(
@@ -202,12 +214,15 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       ),
       body: SafeArea(
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+          child: SizedBox(
+            width: double.infinity,
             child: Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 0,
+                ),
                 children: [
                   // Client Details Section
                   FormSection(
@@ -309,6 +324,31 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         onChanged: (val) {
                           if (val != null) setState(() => _status = val);
                         },
+                      ),
+                      const SizedBox(height: 20),
+                      InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _date ?? DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (date != null) {
+                            setState(() => _date = date);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Invoice Date',
+                            prefixIcon: Icon(Icons.calendar_today),
+                          ),
+                          child: Text(
+                            _date != null
+                                ? _date!.toString().split(' ')[0]
+                                : 'Select Date (Optional)',
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -497,8 +537,8 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         const SizedBox(height: 8),
                         if (_isVatApplicable) ...[
                           FormTotalRow(
-                            label: 'Tax (10%)',
-                            value: _subtotal * 0.1,
+                            label: 'Tax (${_vatRate.toStringAsFixed(0)}%)',
+                            value: _subtotal * (_vatRate / 100),
                             currency: _currency,
                           ),
                           const Padding(
@@ -518,7 +558,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                             ),
                             Text(
                               CurrencyFormatter.format(
-                                _isVatApplicable ? _subtotal * 1.1 : _subtotal,
+                                _isVatApplicable
+                                    ? _subtotal * (1 + _vatRate / 100)
+                                    : _subtotal,
                                 symbol: _currency,
                               ),
                               style: TextStyle(
@@ -532,7 +574,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 80),
                 ],
               ),
             ),

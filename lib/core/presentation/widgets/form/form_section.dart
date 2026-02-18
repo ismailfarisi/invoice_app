@@ -38,19 +38,22 @@ class FormSection extends StatelessWidget {
           ),
         ),
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          width: double.infinity,
           decoration: BoxDecoration(
             color:
                 Theme.of(context).cardTheme.color ??
                 Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: Theme.of(
                 context,
               ).colorScheme.outlineVariant.withValues(alpha: 0.2),
             ),
           ),
-          child: Column(children: children),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          ),
         ),
       ],
     );

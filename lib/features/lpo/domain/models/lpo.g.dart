@@ -19,7 +19,7 @@ class LpoAdapter extends TypeAdapter<Lpo> {
     return Lpo(
       id: fields[0] as String,
       lpoNumber: fields[1] as String,
-      date: fields[2] as DateTime,
+      date: fields[2] as DateTime?,
       expectedDeliveryDate: fields[3] as DateTime?,
       vendor: fields[4] as Client,
       items: (fields[5] as List).cast<LineItem>(),

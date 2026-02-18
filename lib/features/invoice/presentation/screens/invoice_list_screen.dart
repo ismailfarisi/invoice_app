@@ -155,7 +155,7 @@ class _InvoiceCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${invoice.invoiceNumber} • ${DateFormat.yMMMd().format(invoice.date)}',
+                    '${invoice.invoiceNumber} • ${invoice.date != null ? DateFormat.yMMMd().format(invoice.date!) : 'No Date'}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,

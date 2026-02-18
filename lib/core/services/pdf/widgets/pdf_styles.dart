@@ -16,7 +16,7 @@ class PdfStyles {
           return pw.FullPage(
             ignoreMargins: true,
             child: pw.Opacity(
-              opacity: 0.15,
+              opacity: 0.1,
               child: pw.Center(child: pw.Image(image, width: 400)),
             ),
           );

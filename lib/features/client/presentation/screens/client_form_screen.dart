@@ -82,12 +82,15 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
       ),
       body: SafeArea(
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
+          child: SizedBox(
+            width: double.infinity,
             child: Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 0,
+                ),
                 children: [
                   FormSection(
                     title: 'Basic Information',
@@ -159,7 +162,6 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 40),
                 ],
               ),
             ),

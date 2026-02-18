@@ -23,7 +23,9 @@ class LpoListNotifier extends StateNotifier<AsyncValue<List<Lpo>>> {
     try {
       final lpos = await _repository.getLpos();
       // Sort by date descending by default
-      lpos.sort((a, b) => b.date.compareTo(a.date));
+      lpos.sort(
+        (a, b) => (b.date ?? DateTime(0)).compareTo(a.date ?? DateTime(0)),
+      );
       state = AsyncValue.data(lpos);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

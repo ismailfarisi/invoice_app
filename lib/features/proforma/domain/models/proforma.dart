@@ -24,7 +24,7 @@ class ProformaInvoice {
   @HiveField(1)
   final String proformaNumber;
   @HiveField(2)
-  final DateTime date;
+  final DateTime? date;
   @HiveField(3)
   final DateTime? validUntil;
   @HiveField(4)
@@ -59,7 +59,7 @@ class ProformaInvoice {
   ProformaInvoice({
     required this.id,
     required this.proformaNumber,
-    required this.date,
+    this.date,
     this.validUntil,
     required this.client,
     required this.items,
@@ -82,7 +82,7 @@ class ProformaInvoice {
     return Invoice(
       id: id, // Or generate new one, usually new
       invoiceNumber: invoiceNumber ?? 'INV-FROM-$proformaNumber',
-      date: DateTime.now(),
+      date: date ?? DateTime.now(),
       client: client,
       items: items,
       subtotal: subtotal,
@@ -103,7 +103,7 @@ class ProformaInvoice {
     return {
       'id': id,
       'proformaNumber': proformaNumber,
-      'date': date.toIso8601String(),
+      'date': date?.toIso8601String(),
       'validUntil': validUntil?.toIso8601String(),
       'client': client.toJson(),
       'items': items.map((x) => x.toJson()).toList(),
@@ -126,7 +126,7 @@ class ProformaInvoice {
     return ProformaInvoice(
       id: json['id'],
       proformaNumber: json['proformaNumber'],
-      date: DateTime.parse(json['date']),
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
       validUntil: json['validUntil'] != null
           ? DateTime.parse(json['validUntil'])
           : null,

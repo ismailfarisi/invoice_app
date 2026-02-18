@@ -173,7 +173,7 @@ class _QuotationCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${quotation.quotationNumber} • ${DateFormat.yMMMd().format(quotation.date)}',
+                    '${quotation.quotationNumber} • ${quotation.date != null ? DateFormat.yMMMd().format(quotation.date!) : 'No Date'}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,

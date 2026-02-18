@@ -17,8 +17,11 @@ class DeliveryNotePdfGenerator {
   }) async {
     final pdf = pw.Document();
 
-    final image = profile?.logoPath != null
-        ? pw.MemoryImage(File(profile!.logoPath!).readAsBytesSync())
+    final logoFile = profile?.logoPath != null
+        ? File(profile!.logoPath!)
+        : null;
+    final image = (logoFile != null && logoFile.existsSync())
+        ? pw.MemoryImage(logoFile.readAsBytesSync())
         : null;
 
     pdf.addPage(
@@ -116,7 +119,9 @@ class DeliveryNotePdfGenerator {
                     pw.Expanded(
                       child: PdfCommonWidgets.buildGridItem(
                         'Dated',
-                        DateFormat('dd-MMM-yy').format(invoice.date),
+                        invoice.date != null
+                            ? DateFormat('dd-MMM-yy').format(invoice.date!)
+                            : '-',
                       ),
                     ),
                   ],

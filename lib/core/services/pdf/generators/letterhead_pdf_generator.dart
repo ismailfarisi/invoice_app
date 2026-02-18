@@ -13,8 +13,11 @@ class LetterHeadPdfGenerator {
   }) async {
     final pdf = pw.Document();
 
-    final image = profile?.logoPath != null
-        ? pw.MemoryImage(File(profile!.logoPath!).readAsBytesSync())
+    final logoFile = profile?.logoPath != null
+        ? File(profile!.logoPath!)
+        : null;
+    final image = (logoFile != null && logoFile.existsSync())
+        ? pw.MemoryImage(logoFile.readAsBytesSync())
         : null;
 
     pdf.addPage(

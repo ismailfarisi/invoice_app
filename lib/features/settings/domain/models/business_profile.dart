@@ -24,6 +24,14 @@ class BusinessProfile {
   final String? website;
   @HiveField(9)
   final String? mobile;
+  @HiveField(10)
+  final double? defaultVatRate;
+  @HiveField(11)
+  final bool? googleSheetsSyncEnabled;
+  @HiveField(12)
+  final String? googleSheetsSpreadsheetId;
+  @HiveField(13)
+  final String? googleSheetsServiceAccountJson;
 
   BusinessProfile({
     required this.companyName,
@@ -36,6 +44,10 @@ class BusinessProfile {
     this.bankDetails,
     this.website,
     this.mobile,
+    this.defaultVatRate = 5.0,
+    this.googleSheetsSyncEnabled = false,
+    this.googleSheetsSpreadsheetId,
+    this.googleSheetsServiceAccountJson,
   });
 
   Map<String, dynamic> toJson() {
@@ -50,6 +62,10 @@ class BusinessProfile {
       'bankDetails': bankDetails,
       'website': website,
       'mobile': mobile,
+      'defaultVatRate': defaultVatRate,
+      'googleSheetsSyncEnabled': googleSheetsSyncEnabled,
+      'googleSheetsSpreadsheetId': googleSheetsSpreadsheetId,
+      'googleSheetsServiceAccountJson': googleSheetsServiceAccountJson,
     };
   }
 
@@ -65,6 +81,47 @@ class BusinessProfile {
       bankDetails: json['bankDetails'],
       website: json['website'],
       mobile: json['mobile'],
+      defaultVatRate: (json['defaultVatRate'] as num?)?.toDouble() ?? 5.0,
+      googleSheetsSyncEnabled: json['googleSheetsSyncEnabled'] ?? false,
+      googleSheetsSpreadsheetId: json['googleSheetsSpreadsheetId'],
+      googleSheetsServiceAccountJson: json['googleSheetsServiceAccountJson'],
+    );
+  }
+
+  BusinessProfile copyWith({
+    String? companyName,
+    String? email,
+    String? phone,
+    String? address,
+    String? taxId,
+    String? logoPath,
+    String? currency,
+    String? bankDetails,
+    String? website,
+    String? mobile,
+    double? defaultVatRate,
+    bool? googleSheetsSyncEnabled,
+    String? googleSheetsSpreadsheetId,
+    String? googleSheetsServiceAccountJson,
+  }) {
+    return BusinessProfile(
+      companyName: companyName ?? this.companyName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      taxId: taxId ?? this.taxId,
+      logoPath: logoPath ?? this.logoPath,
+      currency: currency ?? this.currency,
+      bankDetails: bankDetails ?? this.bankDetails,
+      website: website ?? this.website,
+      mobile: mobile ?? this.mobile,
+      defaultVatRate: defaultVatRate ?? this.defaultVatRate,
+      googleSheetsSyncEnabled:
+          googleSheetsSyncEnabled ?? this.googleSheetsSyncEnabled,
+      googleSheetsSpreadsheetId:
+          googleSheetsSpreadsheetId ?? this.googleSheetsSpreadsheetId,
+      googleSheetsServiceAccountJson:
+          googleSheetsServiceAccountJson ?? this.googleSheetsServiceAccountJson,
     );
   }
 }

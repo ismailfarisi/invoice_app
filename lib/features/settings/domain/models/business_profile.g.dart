@@ -27,13 +27,17 @@ class BusinessProfileAdapter extends TypeAdapter<BusinessProfile> {
       bankDetails: fields[7] as String?,
       website: fields[8] as String?,
       mobile: fields[9] as String?,
+      defaultVatRate: fields[10] as double?,
+      googleSheetsSyncEnabled: fields[11] as bool?,
+      googleSheetsSpreadsheetId: fields[12] as String?,
+      googleSheetsServiceAccountJson: fields[13] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, BusinessProfile obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.companyName)
       ..writeByte(1)
@@ -53,7 +57,15 @@ class BusinessProfileAdapter extends TypeAdapter<BusinessProfile> {
       ..writeByte(8)
       ..write(obj.website)
       ..writeByte(9)
-      ..write(obj.mobile);
+      ..write(obj.mobile)
+      ..writeByte(10)
+      ..write(obj.defaultVatRate)
+      ..writeByte(11)
+      ..write(obj.googleSheetsSyncEnabled)
+      ..writeByte(12)
+      ..write(obj.googleSheetsSpreadsheetId)
+      ..writeByte(13)
+      ..write(obj.googleSheetsServiceAccountJson);
   }
 
   @override

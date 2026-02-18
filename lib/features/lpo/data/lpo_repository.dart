@@ -1,8 +1,17 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
 
+final lpoRepositoryProvider = Provider((ref) => LpoRepository());
+
 class LpoRepository {
   static const String boxName = 'lpos';
+
+  Future<ValueListenable<Box<Lpo>>> getListenable() async {
+    final box = await _getBox();
+    return box.listenable();
+  }
 
   Future<Box<Lpo>> _getBox() async {
     if (Hive.isBoxOpen(boxName)) {

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 
@@ -6,6 +7,8 @@ final clientRepositoryProvider = Provider((ref) => ClientRepository());
 
 class ClientRepository {
   final Box<Client> _box = Hive.box<Client>('clients');
+
+  ValueListenable<Box<Client>> get listenable => _box.listenable();
 
   List<Client> getAllClients() {
     return _box.values.toList();

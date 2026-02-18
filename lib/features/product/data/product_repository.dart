@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_invoice_app/features/product/domain/models/product.dart';
 
@@ -6,6 +7,8 @@ final productRepositoryProvider = Provider((ref) => ProductRepository());
 
 class ProductRepository {
   final Box<Product> _box = Hive.box<Product>('products');
+
+  ValueListenable<Box<Product>> get listenable => _box.listenable();
 
   List<Product> getAllProducts() {
     return _box.values.toList();

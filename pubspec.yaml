@@ -42,6 +42,7 @@ dependencies:
   # PDF Generation
   pdf: ^3.10.8
   printing: ^5.12.0
+  excel: ^4.0.0
 
   # UI Components
   flutter_slidable: ^4.0.3
@@ -64,6 +65,9 @@ dependencies:
   # Image Picker (for logo)
   image_picker: ^1.0.7
   file_picker: ^10.3.10
+  googleapis: ^16.0.0
+  googleapis_auth: ^2.0.0
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

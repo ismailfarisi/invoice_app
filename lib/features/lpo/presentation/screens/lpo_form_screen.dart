@@ -9,6 +9,7 @@ import 'package:flutter_invoice_app/core/presentation/widgets/item_card.dart';
 import 'package:flutter_invoice_app/core/presentation/widgets/form/form_section.dart';
 import 'package:flutter_invoice_app/core/presentation/widgets/form/form_total_row.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
+import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:flutter_invoice_app/features/lpo/presentation/screens/lpo_pdf_preview_screen.dart';
@@ -26,7 +27,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
   Client? _selectedVendor;
   late TextEditingController _lpoNumberController;
   late List<LineItem> _items;
-  late DateTime _date;
+  DateTime? _date;
   late LpoStatus _status;
   late TextEditingController _termsAndConditionsController;
   late TextEditingController _salesPersonController;
@@ -36,6 +37,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
   late TextEditingController _paymentTermsController;
   late TextEditingController _otherReferenceController;
   late TextEditingController _termsOfDeliveryController;
+  double _vatRate = 5.0;
 
   @override
   void initState() {
@@ -47,7 +49,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
           'LPO-${DateTime.now().millisecondsSinceEpoch}',
     );
     _items = widget.lpo?.items.toList() ?? [];
-    _date = widget.lpo?.date ?? DateTime.now();
+    _date = widget.lpo?.date;
     _status = widget.lpo?.status ?? LpoStatus.draft;
     _termsAndConditionsController = TextEditingController(
       text: widget.lpo?.termsAndConditions,
@@ -67,6 +69,10 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
       text: widget.lpo?.otherReference,
     );
     _termsOfDeliveryController = TextEditingController(text: widget.lpo?.terms);
+
+    // Load Default VAT Rate from settings
+    final profile = ref.read(businessProfileRepositoryProvider).getProfile();
+    _vatRate = profile?.defaultVatRate ?? 5.0;
   }
 
   @override
@@ -119,7 +125,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
       }
 
       final subtotal = _subtotal;
-      final tax = _isVatApplicable ? subtotal * 0.05 : 0.0;
+      final tax = _isVatApplicable ? subtotal * (_vatRate / 100) : 0.0;
       final total = subtotal + tax;
 
       final lpo = Lpo(
@@ -186,12 +192,15 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
       ),
       body: SafeArea(
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+          child: SizedBox(
+            width: double.infinity,
             child: Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 0,
+                ),
                 children: [
                   // Vendor Details Section
                   FormSection(
@@ -294,6 +303,31 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                         onChanged: (val) {
                           if (val != null) setState(() => _status = val);
                         },
+                      ),
+                      const SizedBox(height: 20),
+                      InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _date ?? DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (date != null) {
+                            setState(() => _date = date);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'LPO Date',
+                            prefixIcon: Icon(Icons.calendar_today),
+                          ),
+                          child: Text(
+                            _date != null
+                                ? _date!.toString().split(' ')[0]
+                                : 'Select Date (Optional)',
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -428,8 +462,8 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                         const SizedBox(height: 8),
                         if (_isVatApplicable) ...[
                           FormTotalRow(
-                            label: 'Tax (5%)',
-                            value: _subtotal * 0.05,
+                            label: 'Tax (${_vatRate.toStringAsFixed(0)}%)',
+                            value: _subtotal * (_vatRate / 100),
                             currency: _currency,
                           ),
                           const Padding(
@@ -449,7 +483,9 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                             ),
                             Text(
                               CurrencyFormatter.format(
-                                _isVatApplicable ? _subtotal * 1.05 : _subtotal,
+                                _isVatApplicable
+                                    ? _subtotal * (1 + _vatRate / 100)
+                                    : _subtotal,
                                 symbol: _currency,
                               ),
                               style: TextStyle(
@@ -463,7 +499,6 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 80),
                 ],
               ),
             ),

@@ -19,7 +19,7 @@ class QuotationAdapter extends TypeAdapter<Quotation> {
     return Quotation(
       id: fields[0] as String,
       quotationNumber: fields[1] as String,
-      date: fields[2] as DateTime,
+      date: fields[2] as DateTime?,
       validUntil: fields[3] as DateTime?,
       client: fields[4] as Client,
       items: (fields[5] as List).cast<LineItem>(),
