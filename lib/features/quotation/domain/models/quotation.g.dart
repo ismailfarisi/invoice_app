@@ -19,7 +19,7 @@ class QuotationAdapter extends TypeAdapter<Quotation> {
     return Quotation(
       id: fields[0] as String,
       quotationNumber: fields[1] as String,
-      date: fields[2] as DateTime,
+      date: fields[2] as DateTime?,
       validUntil: fields[3] as DateTime?,
       client: fields[4] as Client,
       items: (fields[5] as List).cast<LineItem>(),
@@ -36,7 +36,7 @@ class QuotationAdapter extends TypeAdapter<Quotation> {
       salesPerson: fields[16] as String?,
       isVatApplicable: fields[17] as bool?,
       currency: fields[18] as String?,
-      isSynced: fields[19] as bool,
+      isSynced: fields[19] == null ? false : fields[19] as bool,
       updatedAt: fields[20] as DateTime?,
       userId: fields[21] as String?,
     );

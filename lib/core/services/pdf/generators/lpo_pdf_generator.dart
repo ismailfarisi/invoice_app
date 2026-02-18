@@ -15,8 +15,11 @@ class LpoPdfGenerator {
   static Future<Uint8List> generate(Lpo lpo, {BusinessProfile? profile}) async {
     final pdf = pw.Document();
 
-    final image = profile?.logoPath != null
-        ? pw.MemoryImage(File(profile!.logoPath!).readAsBytesSync())
+    final logoFile = profile?.logoPath != null
+        ? File(profile!.logoPath!)
+        : null;
+    final image = (logoFile != null && logoFile.existsSync())
+        ? pw.MemoryImage(logoFile.readAsBytesSync())
         : null;
 
     pdf.addPage(
@@ -105,7 +108,9 @@ class LpoPdfGenerator {
                     pw.Expanded(
                       child: PdfCommonWidgets.buildGridItem(
                         'Dated',
-                        DateFormat('dd-MMM-yy').format(lpo.date),
+                        lpo.date != null
+                            ? DateFormat('dd-MMM-yy').format(lpo.date!)
+                            : '-',
                       ),
                     ),
                   ],

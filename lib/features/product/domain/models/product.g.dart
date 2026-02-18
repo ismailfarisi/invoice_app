@@ -24,7 +24,7 @@ class ProductAdapter extends TypeAdapter<Product> {
       sku: fields[4] as String?,
       stockQuantity: fields[5] as double,
       unit: fields[6] as String?,
-      isSynced: fields[7] as bool,
+      isSynced: fields[7] == null ? false : fields[7] as bool,
       updatedAt: fields[8] as DateTime?,
       userId: fields[9] as String?,
     );

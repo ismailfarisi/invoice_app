@@ -24,7 +24,7 @@ class Lpo {
   @HiveField(1)
   final String lpoNumber;
   @HiveField(2)
-  final DateTime date;
+  final DateTime? date;
   @HiveField(3)
   final DateTime? expectedDeliveryDate;
   @HiveField(4)
@@ -59,7 +59,7 @@ class Lpo {
   final String? paymentTerms;
   @HiveField(19)
   final String? otherReference;
-  @HiveField(20)
+  @HiveField(20, defaultValue: false)
   final bool isSynced;
   @HiveField(21)
   final DateTime? updatedAt;
@@ -69,7 +69,7 @@ class Lpo {
   Lpo({
     required this.id,
     required this.lpoNumber,
-    required this.date,
+    this.date,
     this.expectedDeliveryDate,
     required this.vendor,
     required this.items,
@@ -96,7 +96,7 @@ class Lpo {
     return {
       'id': id,
       'lpoNumber': lpoNumber,
-      'date': date.toIso8601String(),
+      'date': date?.toIso8601String(),
       'expectedDeliveryDate': expectedDeliveryDate?.toIso8601String(),
       'vendor': vendor.toJson(),
       'items': items.map((x) => x.toJson()).toList(),
@@ -125,7 +125,7 @@ class Lpo {
     return Lpo(
       id: json['id'],
       lpoNumber: json['lpoNumber'],
-      date: DateTime.parse(json['date']),
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
       expectedDeliveryDate: json['expectedDeliveryDate'] != null
           ? DateTime.parse(json['expectedDeliveryDate'])
           : null,

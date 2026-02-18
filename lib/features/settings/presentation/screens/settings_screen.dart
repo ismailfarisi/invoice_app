@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
-import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_invoice_app/core/services/backup_service.dart';
+import 'dart:convert';
+import 'package:flutter_invoice_app/core/services/sync_service.dart';
+import 'package:flutter_invoice_app/core/utils/file_utils.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_invoice_app/core/services/supabase_service.dart';
 import 'package:flutter_invoice_app/features/auth/presentation/screens/auth_screen.dart';
 import 'package:flutter_invoice_app/features/sync/presentation/providers/sync_provider.dart';
@@ -27,7 +30,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _bankDetailsController;
   late TextEditingController _websiteController;
   late TextEditingController _mobileController;
+  late TextEditingController _vatRateController;
+  String? _selectedCurrency;
   String? _logoPath;
+  bool _syncEnabled = false;
+  String? _serviceAccountJson;
+  String? _spreadsheetId;
 
   @override
   void initState() {
@@ -43,7 +51,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
     _websiteController = TextEditingController(text: profile?.website ?? '');
     _mobileController = TextEditingController(text: profile?.mobile ?? '');
+    _vatRateController = TextEditingController(
+      text: (profile?.defaultVatRate ?? 5.0).toString(),
+    );
+    _selectedCurrency = profile?.currency ?? 'AED';
     _logoPath = profile?.logoPath;
+    _syncEnabled = profile?.googleSheetsSyncEnabled ?? false;
+    _serviceAccountJson = profile?.googleSheetsServiceAccountJson;
+    _spreadsheetId = profile?.googleSheetsSpreadsheetId;
+  }
+
+  Future<void> _pickJsonFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      final file = FileUtils.getFileIfExists(result.files.single.path);
+      if (file != null) {
+        final content = await file.readAsString();
+        try {
+          // Validate JSON
+          jsonDecode(content);
+          setState(() {
+            _serviceAccountJson = content;
+          });
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Invalid JSON file')));
+          }
+        }
+      }
+    }
   }
 
   Future<void> _pickImage() async {
@@ -51,13 +93,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
+      final permanentPath = await FileUtils.saveLogoImage(pickedFile.path);
       setState(() {
-        _logoPath = pickedFile.path;
+        _logoPath = permanentPath;
       });
     }
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
       final profile = BusinessProfile(
         companyName: _nameController.text,
@@ -69,12 +112,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         website: _websiteController.text,
         mobile: _mobileController.text,
         logoPath: _logoPath,
+        currency: _selectedCurrency ?? 'AED',
+        defaultVatRate: double.tryParse(_vatRateController.text) ?? 5.0,
+        googleSheetsSyncEnabled: _syncEnabled,
+        googleSheetsServiceAccountJson: _serviceAccountJson,
+        googleSheetsSpreadsheetId: _spreadsheetId,
       );
 
-      ref.read(businessProfileRepositoryProvider).saveProfile(profile);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings saved successfully')),
-      );
+      await ref.read(businessProfileRepositoryProvider).saveProfile(profile);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Settings saved successfully')),
+        );
+      }
     }
   }
 
@@ -139,7 +189,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _bankDetailsController.text = profile?.bankDetails ?? '';
             _websiteController.text = profile?.website ?? '';
             _mobileController.text = profile?.mobile ?? '';
+            _vatRateController.text = (profile?.defaultVatRate ?? 5.0)
+                .toString();
+            _selectedCurrency = profile?.currency ?? 'AED';
             _logoPath = profile?.logoPath;
+            _syncEnabled = profile?.googleSheetsSyncEnabled ?? false;
+            _serviceAccountJson = profile?.googleSheetsServiceAccountJson;
+            _spreadsheetId = profile?.googleSheetsSpreadsheetId;
           });
         }
       } catch (e) {
@@ -267,7 +323,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
+            constraints: const BoxConstraints(maxWidth: 1000),
             child: Form(
               key: _formKey,
               child: ListView(
@@ -276,21 +332,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Center(
                     child: GestureDetector(
                       onTap: _pickImage,
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        backgroundImage: _logoPath != null
-                            ? FileImage(File(_logoPath!))
-                            : null,
-                        child: _logoPath == null
-                            ? Icon(
-                                Icons.add_a_photo,
-                                size: 40,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              )
-                            : null,
+                      child: Builder(
+                        builder: (context) {
+                          final logoFile = FileUtils.getFileIfExists(_logoPath);
+                          return CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.surface,
+                            backgroundImage: logoFile != null
+                                ? FileImage(logoFile)
+                                : null,
+                            child: logoFile == null
+                                ? Icon(
+                                    Icons.add_a_photo,
+                                    size: 40,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  )
+                                : null,
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -374,6 +437,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         maxLines: 4,
                       ),
+
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _vatRateController,
+                        decoration: const InputDecoration(
+                          labelText: 'Default VAT Rate (%)',
+                          prefixIcon: Icon(Icons.percent),
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: (val) {
+                          if (val == null || val.isEmpty) return 'Required';
+                          if (double.tryParse(val) == null) {
+                            return 'Enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      DropdownButtonFormField<String>(
+                        value: _selectedCurrency,
+                        decoration: const InputDecoration(
+                          labelText: 'Currency',
+                          prefixIcon: Icon(Icons.monetization_on_outlined),
+                        ),
+                        items: ['AED', 'USD', 'EUR', 'GBP', 'INR', 'SAR', 'QAR']
+                            .map(
+                              (c) => DropdownMenuItem(value: c, child: Text(c)),
+                            )
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedCurrency = val;
+                            });
+                          }
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -407,7 +509,85 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24),
+                  _SettingsSection(
+                    title: 'Google Sheets Sync',
+                    icon: Icons.sync,
+                    children: [
+                      SwitchListTile(
+                        title: const Text('Enable Automated Sync'),
+                        subtitle: const Text(
+                          'Sync data to Google Sheets automatically',
+                        ),
+                        value: _syncEnabled,
+                        onChanged: (val) {
+                          setState(() {
+                            _syncEnabled = val;
+                          });
+                        },
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _pickJsonFile,
+                        icon: const Icon(Icons.key),
+                        label: Text(
+                          _serviceAccountJson == null
+                              ? 'Upload Service Account JSON'
+                              : 'Service Account JSON Uploaded',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                        ),
+                      ),
+                      if (_serviceAccountJson != null) ...[
+                        const SizedBox(height: 12),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            'Status: Active',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (_spreadsheetId != null) ...[
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            'Spreadsheet ID: $_spreadsheetId',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      if (_syncEnabled && _serviceAccountJson != null)
+                        FilledButton.icon(
+                          onPressed: () async {
+                            await ref.read(syncServiceProvider).syncAll();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Sync triggered successfully'),
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.sync),
+                          label: const Text('Sync Now'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _save,
                     child: const Padding(

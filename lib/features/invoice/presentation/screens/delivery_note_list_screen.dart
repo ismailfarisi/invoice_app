@@ -33,7 +33,10 @@ class DeliveryNoteListScreen extends ConsumerWidget {
           builder: (context, box, _) {
             final invoices = box.values.toList();
             // Sort by date descending
-            invoices.sort((a, b) => b.date.compareTo(a.date));
+            invoices.sort(
+              (a, b) =>
+                  (b.date ?? DateTime(0)).compareTo(a.date ?? DateTime(0)),
+            );
 
             return TabBarView(
               children: [
@@ -113,6 +116,7 @@ class _DeliveryNoteCard extends ConsumerWidget {
           MaterialPageRoute(
             builder: (_) => GenericPdfPreviewScreen(
               title: 'Delivery Note Preview',
+              pdfFileName: 'DeliveryNote_${invoice.invoiceNumber}.pdf',
               buildEvent: (format) =>
                   PdfService().generateDeliveryNote(invoice, profile: profile),
             ),
@@ -168,7 +172,7 @@ class _DeliveryNoteCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${invoice.invoiceNumber} • ${DateFormat.yMMMd().format(invoice.date)}',
+                    '${invoice.invoiceNumber} • ${invoice.date != null ? DateFormat.yMMMd().format(invoice.date!) : 'No Date'}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,

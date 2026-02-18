@@ -18,7 +18,7 @@ class Product {
   final double stockQuantity; // For basic inventory tracking
   @HiveField(6)
   final String? unit;
-  @HiveField(7)
+  @HiveField(7, defaultValue: false)
   final bool isSynced;
   @HiveField(8)
   final DateTime? updatedAt;

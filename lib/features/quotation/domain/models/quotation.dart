@@ -24,7 +24,7 @@ class Quotation {
   @HiveField(1)
   final String quotationNumber;
   @HiveField(2)
-  final DateTime date;
+  final DateTime? date;
   @HiveField(3)
   final DateTime? validUntil;
   @HiveField(4)
@@ -59,7 +59,7 @@ class Quotation {
   final bool? isVatApplicable;
   @HiveField(18)
   final String? currency;
-  @HiveField(19)
+  @HiveField(19, defaultValue: false)
   final bool isSynced;
   @HiveField(20)
   final DateTime? updatedAt;
@@ -69,7 +69,7 @@ class Quotation {
   Quotation({
     required this.id,
     required this.quotationNumber,
-    required this.date,
+    this.date,
     this.validUntil,
     required this.client,
     required this.items,
@@ -96,7 +96,7 @@ class Quotation {
     return Invoice(
       id: id, // Or generate new one
       invoiceNumber: invoiceNumber ?? 'INV-FROM-$quotationNumber',
-      date: DateTime.now(),
+      date: date ?? DateTime.now(),
       client: client,
       items: items,
       subtotal: subtotal,
@@ -117,7 +117,7 @@ class Quotation {
     return {
       'id': id,
       'quotationNumber': quotationNumber,
-      'date': date.toIso8601String(),
+      'date': date?.toIso8601String(),
       'validUntil': validUntil?.toIso8601String(),
       'client': client.toJson(),
       'items': items.map((x) => x.toJson()).toList(),
@@ -145,7 +145,7 @@ class Quotation {
     return Quotation(
       id: json['id'],
       quotationNumber: json['quotationNumber'],
-      date: DateTime.parse(json['date']),
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
       validUntil: json['validUntil'] != null
           ? DateTime.parse(json['validUntil'])
           : null,

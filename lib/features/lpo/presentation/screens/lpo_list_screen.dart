@@ -137,7 +137,7 @@ class _LpoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${lpo.lpoNumber} • ${DateFormat.yMMMd().format(lpo.date)}',
+                    '${lpo.lpoNumber} • ${lpo.date != null ? DateFormat.yMMMd().format(lpo.date!) : 'No Date'}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,

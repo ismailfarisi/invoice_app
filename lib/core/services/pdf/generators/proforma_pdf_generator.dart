@@ -18,8 +18,11 @@ class ProformaPdfGenerator {
   }) async {
     final pdf = pw.Document();
 
-    final image = profile?.logoPath != null
-        ? pw.MemoryImage(File(profile!.logoPath!).readAsBytesSync())
+    final logoFile = profile?.logoPath != null
+        ? File(profile!.logoPath!)
+        : null;
+    final image = (logoFile != null && logoFile.existsSync())
+        ? pw.MemoryImage(logoFile.readAsBytesSync())
         : null;
 
     pdf.addPage(
@@ -58,7 +61,12 @@ class ProformaPdfGenerator {
       ),
       child: pw.Column(
         children: [
-          _buildInfoRow('Date', DateFormat('d/M/yyyy').format(proforma.date)),
+          _buildInfoRow(
+            'Date',
+            proforma.date != null
+                ? DateFormat('d/M/yyyy').format(proforma.date!)
+                : '-',
+          ),
           _buildInfoRow('Company:', proforma.client.name),
           _buildInfoRow(
             'Attention:',

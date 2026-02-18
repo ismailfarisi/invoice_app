@@ -26,7 +26,9 @@ class ProformaListNotifier
   Future<void> loadProformas() async {
     try {
       final proformas = await _repository.getProformas();
-      proformas.sort((a, b) => b.date.compareTo(a.date));
+      proformas.sort(
+        (a, b) => (b.date ?? DateTime(0)).compareTo(a.date ?? DateTime(0)),
+      );
       state = AsyncValue.data(proformas);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

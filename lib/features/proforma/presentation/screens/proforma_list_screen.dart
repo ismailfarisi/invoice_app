@@ -139,7 +139,7 @@ class _ProformaCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${proforma.proformaNumber} • ${DateFormat.yMMMd().format(proforma.date)}',
+                    '${proforma.proformaNumber} • ${proforma.date != null ? DateFormat.yMMMd().format(proforma.date!) : 'No Date'}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,

@@ -11,6 +11,7 @@ import 'package:flutter_invoice_app/features/product/domain/models/product.dart'
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
 import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
 import 'package:flutter_invoice_app/features/proforma/domain/models/proforma.dart';
+import 'package:flutter_invoice_app/core/services/sync_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,12 +47,15 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Initialize SyncService
+    ref.read(syncServiceProvider);
+
     return MaterialApp(
       title: 'Flutter Invoice App',
       theme: AppTheme.lightTheme,

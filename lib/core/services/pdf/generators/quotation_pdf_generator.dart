@@ -18,8 +18,11 @@ class QuotationPdfGenerator {
   }) async {
     final pdf = pw.Document();
 
-    final image = profile?.logoPath != null
-        ? pw.MemoryImage(File(profile!.logoPath!).readAsBytesSync())
+    final logoFile = profile?.logoPath != null
+        ? File(profile!.logoPath!)
+        : null;
+    final image = (logoFile != null && logoFile.existsSync())
+        ? pw.MemoryImage(logoFile.readAsBytesSync())
         : null;
 
     pdf.addPage(
@@ -60,7 +63,12 @@ class QuotationPdfGenerator {
       ),
       child: pw.Column(
         children: [
-          _buildInfoRow('Date', DateFormat('d/M/yyyy').format(quotation.date)),
+          _buildInfoRow(
+            'Date',
+            quotation.date != null
+                ? DateFormat('d/M/yyyy').format(quotation.date!)
+                : '-',
+          ),
           _buildInfoRow('Company:', quotation.client.name),
           _buildInfoRow(
             'Attention:',
@@ -71,7 +79,9 @@ class QuotationPdfGenerator {
           _buildInfoRow(
             'Enquiry Ref:',
             quotation.enquiryRef ??
-                'Verbal ${DateFormat("dd-MM-yyyy").format(quotation.date)}',
+                (quotation.date != null
+                    ? 'Verbal ${DateFormat("dd-MM-yyyy").format(quotation.date!)}'
+                    : 'Verbal'),
           ),
           _buildInfoRow('Project:', quotation.project ?? ''),
           _buildInfoRow(

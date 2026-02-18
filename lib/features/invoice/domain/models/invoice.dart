@@ -10,7 +10,7 @@ class Invoice {
   @HiveField(1)
   final String invoiceNumber; // e.g. INV-001
   @HiveField(2)
-  final DateTime date;
+  final DateTime? date;
   @HiveField(3)
   final DateTime? dueDate;
   @HiveField(4)
@@ -53,7 +53,7 @@ class Invoice {
   final String? buyersOrderNumber;
   @HiveField(23)
   final DateTime? buyersOrderDate;
-  @HiveField(24)
+  @HiveField(24, defaultValue: false)
   final bool isSynced;
   @HiveField(25)
   final DateTime? updatedAt;
@@ -63,7 +63,7 @@ class Invoice {
   Invoice({
     required this.id,
     required this.invoiceNumber,
-    required this.date,
+    this.date,
     this.dueDate,
     required this.client,
     required this.items,
@@ -93,7 +93,7 @@ class Invoice {
     return {
       'id': id,
       'invoiceNumber': invoiceNumber,
-      'date': date.toIso8601String(),
+      'date': date?.toIso8601String(),
       'dueDate': dueDate?.toIso8601String(),
       'client': client.toJson(),
       'items': items.map((x) => x.toJson()).toList(),
@@ -126,7 +126,7 @@ class Invoice {
     return Invoice(
       id: json['id'],
       invoiceNumber: json['invoiceNumber'],
-      date: DateTime.parse(json['date']),
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
       client: Client.fromJson(Map<String, dynamic>.from(json['client'])),
       items: List<LineItem>.from(
@@ -198,7 +198,7 @@ class Client {
   @HiveField(6)
   final String? taxId;
 
-  @HiveField(7)
+  @HiveField(7, defaultValue: false)
   final bool isSynced;
   @HiveField(8)
   final DateTime? updatedAt;
