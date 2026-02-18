@@ -59,7 +59,7 @@ class Quotation {
   final bool? isVatApplicable;
   @HiveField(18)
   final String? currency;
-  @HiveField(19)
+  @HiveField(19, defaultValue: false)
   final bool isSynced;
   @HiveField(20)
   final DateTime? updatedAt;

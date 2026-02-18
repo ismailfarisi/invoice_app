@@ -55,7 +55,7 @@ class ProformaInvoice {
   final String? currency;
   @HiveField(17)
   final String? project;
-  @HiveField(18)
+  @HiveField(18, defaultValue: false)
   final bool isSynced;
   @HiveField(19)
   final DateTime? updatedAt;

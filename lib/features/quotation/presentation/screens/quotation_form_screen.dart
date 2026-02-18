@@ -208,275 +208,287 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 0),
-          children: [
-            // Client Details Section
-            FormSection(
-              title: 'Client Selection',
-              icon: Icons.person_outline,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: ClientSelector(
-                        selectedClient: _selectedClient,
-                        onChanged: (client) =>
-                            setState(() => _selectedClient = client),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton.filledTonal(
-                      icon: const Icon(Icons.add),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ClientFormScreen(),
-                        ),
-                      ),
-                    ),
-                  ],
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 0,
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Quotation Details Section
-            FormSection(
-              title: 'Quotation Info',
-              icon: Icons.info_outline,
-              children: [
-                TextFormField(
-                  controller: _quotationNumberController,
-                  decoration: const InputDecoration(
-                    labelText: 'Quotation Number',
-                    prefixIcon: Icon(Icons.numbers),
-                  ),
-                  validator: (val) =>
-                      val == null || val.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<String>(
-                  value: _currency,
-                  decoration: const InputDecoration(
-                    labelText: 'Currency',
-                    prefixIcon: Icon(Icons.attach_money),
-                  ),
-                  items: ['AED', 'USD', 'EUR', 'GBP'].map((currency) {
-                    return DropdownMenuItem(
-                      value: currency,
-                      child: Text(currency),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _currency = val);
-                  },
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _projectController,
-                  decoration: const InputDecoration(
-                    labelText: 'Project',
-                    prefixIcon: Icon(Icons.work_outline),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _enquiryRefController,
-                  decoration: const InputDecoration(
-                    labelText: 'Enquiry Ref',
-                    prefixIcon: Icon(Icons.bookmark_border),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _salesPersonController,
-                  decoration: const InputDecoration(
-                    labelText: 'Sales Person',
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SwitchListTile(
-                  title: const Text('VAT Applicable'),
-                  value: _isVatApplicable,
-                  onChanged: (val) {
-                    setState(() {
-                      _isVatApplicable = val;
-                    });
-                  },
-                ),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<QuotationStatus>(
-                  initialValue: _status,
-                  decoration: const InputDecoration(
-                    labelText: 'Status',
-                    prefixIcon: Icon(Icons.label_important_outline),
-                  ),
-                  items: QuotationStatus.values.map((status) {
-                    return DropdownMenuItem(
-                      value: status,
-                      child: Text(status.name.toUpperCase()),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _status = val);
-                  },
-                ),
-                const SizedBox(height: 20),
-                InkWell(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _date ?? DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (date != null) {
-                      setState(() => _date = date);
-                    }
-                  },
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Quotation Date',
-                      prefixIcon: Icon(Icons.calendar_today),
-                    ),
-                    child: Text(
-                      _date != null
-                          ? _date!.toString().split(' ')[0]
-                          : 'Select Date (Optional)',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Terms Section
-            FormSection(
-              title: 'Terms & Conditions',
-              icon: Icons.description_outlined,
-              children: [
-                TextFormField(
-                  controller: _termsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Terms',
-                    hintText: 'Enter payment terms, delivery terms, etc.',
-                  ),
-                  maxLines: 4,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _termsAndConditionsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Terms & Conditions',
-                    hintText: 'Enter quotation terms and conditions...',
-                  ),
-                  maxLines: 4,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-
-            // Line Items Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Items',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                TextButton.icon(
-                  onPressed: _addItem,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Item'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ..._items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: ItemCard(
-                  key: ValueKey(item.id),
-                  item: item,
-                  index: index,
-                  onUpdate: (newItem) => _updateItem(index, newItem),
-                  onRemove: () => _removeItem(index),
-                ),
-              );
-            }),
-
-            const SizedBox(height: 32),
-            // Totals Section
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.1),
-                ),
-              ),
-              child: Column(
                 children: [
-                  FormTotalRow(
-                    label: 'Subtotal',
-                    value: _subtotal,
-                    currency: _currency,
-                  ),
-                  const SizedBox(height: 8),
-                  if (_isVatApplicable) ...[
-                    FormTotalRow(
-                      label: 'Tax (${_vatRate.toStringAsFixed(0)}%)',
-                      value: _subtotal * (_vatRate / 100),
-                      currency: _currency,
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(),
-                    ),
-                  ],
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Client Details Section
+                  FormSection(
+                    title: 'Client Selection',
+                    icon: Icons.person_outline,
                     children: [
-                      const Text(
-                        'Total Amount',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClientSelector(
+                              selectedClient: _selectedClient,
+                              onChanged: (client) =>
+                                  setState(() => _selectedClient = client),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton.filledTonal(
+                            icon: const Icon(Icons.add),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ClientFormScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Quotation Details Section
+                  FormSection(
+                    title: 'Quotation Info',
+                    icon: Icons.info_outline,
+                    children: [
+                      TextFormField(
+                        controller: _quotationNumberController,
+                        decoration: const InputDecoration(
+                          labelText: 'Quotation Number',
+                          prefixIcon: Icon(Icons.numbers),
+                        ),
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      DropdownButtonFormField<String>(
+                        value: _currency,
+                        decoration: const InputDecoration(
+                          labelText: 'Currency',
+                          prefixIcon: Icon(Icons.attach_money),
+                        ),
+                        items: ['AED', 'USD', 'EUR', 'GBP'].map((currency) {
+                          return DropdownMenuItem(
+                            value: currency,
+                            child: Text(currency),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _currency = val);
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _projectController,
+                        decoration: const InputDecoration(
+                          labelText: 'Project',
+                          prefixIcon: Icon(Icons.work_outline),
                         ),
                       ),
-                      Text(
-                        CurrencyFormatter.format(
-                          _isVatApplicable
-                              ? _subtotal * (1 + _vatRate / 100)
-                              : _subtotal,
-                          symbol: _currency,
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _enquiryRefController,
+                        decoration: const InputDecoration(
+                          labelText: 'Enquiry Ref',
+                          prefixIcon: Icon(Icons.bookmark_border),
                         ),
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: Theme.of(context).colorScheme.primary,
+                      ),
+
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _salesPersonController,
+                        decoration: const InputDecoration(
+                          labelText: 'Sales Person',
+                          prefixIcon: Icon(Icons.person),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SwitchListTile(
+                        title: const Text('VAT Applicable'),
+                        value: _isVatApplicable,
+                        onChanged: (val) {
+                          setState(() {
+                            _isVatApplicable = val;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      DropdownButtonFormField<QuotationStatus>(
+                        initialValue: _status,
+                        decoration: const InputDecoration(
+                          labelText: 'Status',
+                          prefixIcon: Icon(Icons.label_important_outline),
+                        ),
+                        items: QuotationStatus.values.map((status) {
+                          return DropdownMenuItem(
+                            value: status,
+                            child: Text(status.name.toUpperCase()),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _status = val);
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _date ?? DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (date != null) {
+                            setState(() => _date = date);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Quotation Date',
+                            prefixIcon: Icon(Icons.calendar_today),
+                          ),
+                          child: Text(
+                            _date != null
+                                ? _date!.toString().split(' ')[0]
+                                : 'Select Date (Optional)',
+                          ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 24),
+
+                  // Terms Section
+                  FormSection(
+                    title: 'Terms & Conditions',
+                    icon: Icons.description_outlined,
+                    children: [
+                      TextFormField(
+                        controller: _termsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Terms',
+                          hintText: 'Enter payment terms, delivery terms, etc.',
+                        ),
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _termsAndConditionsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Terms & Conditions',
+                          hintText: 'Enter quotation terms and conditions...',
+                        ),
+                        maxLines: 4,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Line Items Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Items',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _addItem,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Item'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ..._items.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: ItemCard(
+                        key: ValueKey(item.id),
+                        item: item,
+                        index: index,
+                        onUpdate: (newItem) => _updateItem(index, newItem),
+                        onRemove: () => _removeItem(index),
+                      ),
+                    );
+                  }),
+
+                  const SizedBox(height: 32),
+                  // Totals Section
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        FormTotalRow(
+                          label: 'Subtotal',
+                          value: _subtotal,
+                          currency: _currency,
+                        ),
+                        const SizedBox(height: 8),
+                        if (_isVatApplicable) ...[
+                          FormTotalRow(
+                            label: 'Tax (${_vatRate.toStringAsFixed(0)}%)',
+                            value: _subtotal * (_vatRate / 100),
+                            currency: _currency,
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(),
+                          ),
+                        ],
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Total Amount',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              CurrencyFormatter.format(
+                                _isVatApplicable
+                                    ? _subtotal * (1 + _vatRate / 100)
+                                    : _subtotal,
+                                symbol: _currency,
+                              ),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 80),
-          ],
+          ),
         ),
       ),
     );

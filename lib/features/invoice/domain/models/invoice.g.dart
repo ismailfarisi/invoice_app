@@ -41,7 +41,7 @@ class InvoiceAdapter extends TypeAdapter<Invoice> {
       otherReference: fields[21] as String?,
       buyersOrderNumber: fields[22] as String?,
       buyersOrderDate: fields[23] as DateTime?,
-      isSynced: fields[24] as bool,
+      isSynced: fields[24] == null ? false : fields[24] as bool,
       updatedAt: fields[25] as DateTime?,
       userId: fields[26] as String?,
     );
@@ -136,7 +136,7 @@ class ClientAdapter extends TypeAdapter<Client> {
       phone: fields[4] as String?,
       contactPerson: fields[5] as String?,
       taxId: fields[6] as String?,
-      isSynced: fields[7] as bool,
+      isSynced: fields[7] == null ? false : fields[7] as bool,
       updatedAt: fields[8] as DateTime?,
       userId: fields[9] as String?,
     );

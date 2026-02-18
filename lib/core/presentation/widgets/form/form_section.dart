@@ -50,9 +50,31 @@ class FormSection extends StatelessWidget {
               ).colorScheme.outlineVariant.withValues(alpha: 0.2),
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: children,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth > 600;
+              if (isDesktop) {
+                return Wrap(
+                  spacing: 20,
+                  runSpacing: 20,
+                  children: children.map((child) {
+                    return SizedBox(
+                      width: (constraints.maxWidth - 20) / 2,
+                      child: child,
+                    );
+                  }).toList(),
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children.map((child) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: child,
+                  );
+                }).toList(),
+              );
+            },
           ),
         ),
       ],

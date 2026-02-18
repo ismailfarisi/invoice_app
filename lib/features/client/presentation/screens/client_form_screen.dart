@@ -82,8 +82,8 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
       ),
       body: SafeArea(
         child: Center(
-          child: SizedBox(
-            width: double.infinity,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
             child: Form(
               key: _formKey,
               child: ListView(

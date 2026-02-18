@@ -31,7 +31,7 @@ class BusinessProfileAdapter extends TypeAdapter<BusinessProfile> {
       googleSheetsSyncEnabled: fields[11] as bool?,
       googleSheetsSpreadsheetId: fields[12] as String?,
       googleSheetsServiceAccountJson: fields[13] as String?,
-      isSynced: fields[14] as bool,
+      isSynced: fields[14] == null ? false : fields[14] as bool,
       updatedAt: fields[15] as DateTime?,
       userId: fields[16] as String?,
     );

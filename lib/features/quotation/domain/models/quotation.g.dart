@@ -36,7 +36,7 @@ class QuotationAdapter extends TypeAdapter<Quotation> {
       salesPerson: fields[16] as String?,
       isVatApplicable: fields[17] as bool?,
       currency: fields[18] as String?,
-      isSynced: fields[19] as bool,
+      isSynced: fields[19] == null ? false : fields[19] as bool,
       updatedAt: fields[20] as DateTime?,
       userId: fields[21] as String?,
     );

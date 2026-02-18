@@ -32,11 +32,11 @@ class BusinessProfile {
   final String? googleSheetsSpreadsheetId;
   @HiveField(13)
   final String? googleSheetsServiceAccountJson;
-  @HiveField(10)
+  @HiveField(14, defaultValue: false)
   final bool isSynced;
-  @HiveField(11)
+  @HiveField(15)
   final DateTime? updatedAt;
-  @HiveField(12)
+  @HiveField(16)
   final String? userId;
 
   BusinessProfile({

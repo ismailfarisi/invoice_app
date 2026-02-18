@@ -53,7 +53,7 @@ class Invoice {
   final String? buyersOrderNumber;
   @HiveField(23)
   final DateTime? buyersOrderDate;
-  @HiveField(24)
+  @HiveField(24, defaultValue: false)
   final bool isSynced;
   @HiveField(25)
   final DateTime? updatedAt;
@@ -198,7 +198,7 @@ class Client {
   @HiveField(6)
   final String? taxId;
 
-  @HiveField(7)
+  @HiveField(7, defaultValue: false)
   final bool isSynced;
   @HiveField(8)
   final DateTime? updatedAt;

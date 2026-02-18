@@ -35,7 +35,7 @@ class ProformaInvoiceAdapter extends TypeAdapter<ProformaInvoice> {
       isVatApplicable: fields[15] as bool?,
       currency: fields[16] as String?,
       project: fields[17] as String?,
-      isSynced: fields[18] as bool,
+      isSynced: fields[18] == null ? false : fields[18] as bool,
       updatedAt: fields[19] as DateTime?,
       userId: fields[20] as String?,
     );

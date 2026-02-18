@@ -59,7 +59,7 @@ class Lpo {
   final String? paymentTerms;
   @HiveField(19)
   final String? otherReference;
-  @HiveField(20)
+  @HiveField(20, defaultValue: false)
   final bool isSynced;
   @HiveField(21)
   final DateTime? updatedAt;
