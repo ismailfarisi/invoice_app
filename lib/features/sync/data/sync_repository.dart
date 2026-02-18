@@ -57,7 +57,7 @@ class SyncRepository {
     final box = Hive.box<BusinessProfile>('settings');
     if (box.isEmpty) return;
 
-    final profile = box.getAt(0);
+    final profile = box.get('profile'); // Use correct key
     if (profile != null && !profile.isSynced) {
       await _supabase.from('business_profiles').upsert({
         ...profile.toJson(),
@@ -65,8 +65,8 @@ class SyncRepository {
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id');
 
-      await box.putAt(
-        0,
+      await box.put(
+        'profile', // Use correct key
         BusinessProfile(
           companyName: profile.companyName,
           email: profile.email,
@@ -97,8 +97,9 @@ class SyncRepository {
       final data = response.first;
       final profile = BusinessProfile.fromJson(data);
       final box = Hive.box<BusinessProfile>('settings');
-      await box.putAt(
-        0,
+
+      await box.put(
+        'profile', // Use correct key
         BusinessProfile(
           companyName: profile.companyName,
           email: profile.email,
@@ -131,7 +132,7 @@ class SyncRepository {
         });
 
         await box.put(
-          key,
+          item.id, // Ensure consistent key usage
           Product(
             id: item.id,
             name: item.name,
@@ -159,18 +160,6 @@ class SyncRepository {
     final box = Hive.box<Product>('products');
     for (var data in response) {
       final product = Product.fromJson(data);
-      // Find existing key if any, or add new
-      // Assuming ID is unique and stable
-      // We need to find the key for this ID.
-      var existingKey;
-      try {
-        existingKey = box.keys.firstWhere(
-          (k) => box.get(k)?.id == product.id,
-          orElse: () => null,
-        );
-      } catch (e) {
-        existingKey = null;
-      }
 
       final syncedProduct = Product(
         id: product.id,
@@ -185,11 +174,8 @@ class SyncRepository {
         userId: userId,
       );
 
-      if (existingKey != null) {
-        await box.put(existingKey, syncedProduct);
-      } else {
-        await box.add(syncedProduct);
-      }
+      // Use ID as key, consistent with Repository
+      await box.put(product.id, syncedProduct);
     }
   }
 
@@ -206,7 +192,7 @@ class SyncRepository {
         });
 
         await box.put(
-          key,
+          item.id,
           Client(
             id: item.id,
             name: item.name,
@@ -234,15 +220,6 @@ class SyncRepository {
     final box = Hive.box<Client>('clients');
     for (var data in response) {
       final client = Client.fromJson(data);
-      var existingKey;
-      try {
-        existingKey = box.keys.firstWhere(
-          (k) => box.get(k)?.id == client.id,
-          orElse: () => null,
-        );
-      } catch (e) {
-        existingKey = null;
-      }
 
       final syncedClient = Client(
         id: client.id,
@@ -257,11 +234,7 @@ class SyncRepository {
         userId: userId,
       );
 
-      if (existingKey != null) {
-        await box.put(existingKey, syncedClient);
-      } else {
-        await box.add(syncedClient);
-      }
+      await box.put(client.id, syncedClient);
     }
   }
 
@@ -293,7 +266,7 @@ class SyncRepository {
         }
 
         await box.put(
-          key,
+          item.id,
           Invoice(
             id: item.id,
             invoiceNumber: item.invoiceNumber,
@@ -339,15 +312,6 @@ class SyncRepository {
 
     final box = Hive.box<Invoice>('invoices');
     for (var data in response) {
-      // Data from Supabase might have nested 'invoice_items' and 'client'
-      // We need to adapt it back to Hive model structure
-      // client:clients(*) returns a map.
-      // invoice_items(*) returns a list.
-
-      // Ensure specific fields are mapped correctly if Supabase returns snake_case
-      // But we mapped toJson to match fields, so it should be fine mostly.
-
-      // Adjust data for FromJson:
       final fixedData = Map<String, dynamic>.from(data);
       if (fixedData['client'] != null) {
         fixedData['client'] = Map<String, dynamic>.from(fixedData['client']);
@@ -359,17 +323,6 @@ class SyncRepository {
 
       final invoice = Invoice.fromJson(fixedData);
 
-      var existingKey;
-      try {
-        existingKey = box.keys.firstWhere(
-          (k) => box.get(k)?.id == invoice.id,
-          orElse: () => null,
-        );
-      } catch (e) {
-        existingKey = null;
-      }
-
-      // Reconstruct to ensure isSynced is true
       final syncedInvoice = Invoice(
         id: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
@@ -400,11 +353,7 @@ class SyncRepository {
         userId: userId,
       );
 
-      if (existingKey != null) {
-        await box.put(existingKey, syncedInvoice);
-      } else {
-        await box.add(syncedInvoice);
-      }
+      await box.put(invoice.id, syncedInvoice);
     }
   }
 
@@ -440,7 +389,7 @@ class SyncRepository {
         }
 
         await box.put(
-          key,
+          item.id,
           Quotation(
             id: item.id,
             quotationNumber: item.quotationNumber,
@@ -487,15 +436,6 @@ class SyncRepository {
         fixedData['items'] = fixedData['quotation_items'];
       }
       final quotation = Quotation.fromJson(fixedData);
-      var existingKey;
-      try {
-        existingKey = box.keys.firstWhere(
-          (k) => box.get(k)?.id == quotation.id,
-          orElse: () => null,
-        );
-      } catch (e) {
-        existingKey = null;
-      }
 
       final syncedQuotation = Quotation(
         id: quotation.id,
@@ -522,11 +462,7 @@ class SyncRepository {
         userId: userId,
       );
 
-      if (existingKey != null) {
-        await box.put(existingKey, syncedQuotation);
-      } else {
-        await box.add(syncedQuotation);
-      }
+      await box.put(quotation.id, syncedQuotation);
     }
   }
 
@@ -552,7 +488,7 @@ class SyncRepository {
         }
 
         await box.put(
-          key,
+          item.id,
           Lpo(
             id: item.id,
             lpoNumber: item.lpoNumber,
@@ -600,15 +536,6 @@ class SyncRepository {
         fixedData['items'] = fixedData['lpo_items'];
       }
       final lpo = Lpo.fromJson(fixedData);
-      var existingKey;
-      try {
-        existingKey = box.keys.firstWhere(
-          (k) => box.get(k)?.id == lpo.id,
-          orElse: () => null,
-        );
-      } catch (e) {
-        existingKey = null;
-      }
 
       final syncedLpo = Lpo(
         id: lpo.id,
@@ -636,11 +563,7 @@ class SyncRepository {
         userId: userId,
       );
 
-      if (existingKey != null) {
-        await box.put(existingKey, syncedLpo);
-      } else {
-        await box.add(syncedLpo);
-      }
+      await box.put(lpo.id, syncedLpo);
     }
   }
 
@@ -671,7 +594,7 @@ class SyncRepository {
         }
 
         await box.put(
-          key,
+          item.id,
           ProformaInvoice(
             id: item.id,
             proformaNumber: item.proformaNumber,
@@ -717,15 +640,6 @@ class SyncRepository {
         fixedData['items'] = fixedData['proforma_items'];
       }
       final proforma = ProformaInvoice.fromJson(fixedData);
-      var existingKey;
-      try {
-        existingKey = box.keys.firstWhere(
-          (k) => box.get(k)?.id == proforma.id,
-          orElse: () => null,
-        );
-      } catch (e) {
-        existingKey = null;
-      }
 
       final syncedProforma = ProformaInvoice(
         id: proforma.id,
@@ -751,11 +665,7 @@ class SyncRepository {
         userId: userId,
       );
 
-      if (existingKey != null) {
-        await box.put(existingKey, syncedProforma);
-      } else {
-        await box.add(syncedProforma);
-      }
+      await box.put(proforma.id, syncedProforma);
     }
   }
 }
