@@ -53,6 +53,12 @@ class Invoice {
   final String? buyersOrderNumber;
   @HiveField(23)
   final DateTime? buyersOrderDate;
+  @HiveField(24)
+  final bool isSynced;
+  @HiveField(25)
+  final DateTime? updatedAt;
+  @HiveField(26)
+  final String? userId;
 
   Invoice({
     required this.id,
@@ -79,6 +85,9 @@ class Invoice {
     this.otherReference,
     this.buyersOrderNumber,
     this.buyersOrderDate,
+    this.isSynced = false,
+    this.updatedAt,
+    this.userId,
   });
   Map<String, dynamic> toJson() {
     return {
@@ -106,6 +115,10 @@ class Invoice {
       'otherReference': otherReference,
       'buyersOrderNumber': buyersOrderNumber,
       'buyersOrderDate': buyersOrderDate?.toIso8601String(),
+      'isSynced': isSynced,
+      'updatedAt': updatedAt?.toIso8601String(),
+      'user_id': userId,
+      'client_id': client.id, // For Supabase relation
     };
   }
 
@@ -145,6 +158,11 @@ class Invoice {
       buyersOrderDate: json['buyersOrderDate'] != null
           ? DateTime.parse(json['buyersOrderDate'])
           : null,
+      isSynced: json['isSynced'] ?? false,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      userId: json['user_id'],
     );
   }
 }
@@ -180,6 +198,13 @@ class Client {
   @HiveField(6)
   final String? taxId;
 
+  @HiveField(7)
+  final bool isSynced;
+  @HiveField(8)
+  final DateTime? updatedAt;
+  @HiveField(9)
+  final String? userId;
+
   Client({
     required this.id,
     required this.name,
@@ -188,6 +213,9 @@ class Client {
     this.phone,
     this.contactPerson,
     this.taxId,
+    this.isSynced = false,
+    this.updatedAt,
+    this.userId,
   });
 
   Map<String, dynamic> toJson() {
@@ -199,6 +227,9 @@ class Client {
       'phone': phone,
       'contactPerson': contactPerson,
       'taxId': taxId,
+      'isSynced': isSynced,
+      'updatedAt': updatedAt?.toIso8601String(),
+      'user_id': userId,
     };
   }
 
@@ -211,6 +242,11 @@ class Client {
       phone: json['phone'],
       contactPerson: json['contactPerson'],
       taxId: json['taxId'],
+      isSynced: json['isSynced'] ?? false,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      userId: json['user_id'],
     );
   }
 }

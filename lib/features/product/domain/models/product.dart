@@ -18,6 +18,12 @@ class Product {
   final double stockQuantity; // For basic inventory tracking
   @HiveField(6)
   final String? unit;
+  @HiveField(7)
+  final bool isSynced;
+  @HiveField(8)
+  final DateTime? updatedAt;
+  @HiveField(9)
+  final String? userId;
 
   Product({
     required this.id,
@@ -27,6 +33,9 @@ class Product {
     this.sku,
     this.stockQuantity = 0,
     this.unit,
+    this.isSynced = false,
+    this.updatedAt,
+    this.userId,
   });
 
   Map<String, dynamic> toJson() {
@@ -38,6 +47,9 @@ class Product {
       'sku': sku,
       'stockQuantity': stockQuantity,
       'unit': unit,
+      'isSynced': isSynced,
+      'updatedAt': updatedAt?.toIso8601String(),
+      'user_id': userId,
     };
   }
 
@@ -50,6 +62,11 @@ class Product {
       sku: json['sku'],
       stockQuantity: (json['stockQuantity'] as num?)?.toDouble() ?? 0,
       unit: json['unit'],
+      isSynced: json['isSynced'] ?? false,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      userId: json['user_id'],
     );
   }
 }

@@ -32,6 +32,12 @@ class BusinessProfile {
   final String? googleSheetsSpreadsheetId;
   @HiveField(13)
   final String? googleSheetsServiceAccountJson;
+  @HiveField(10)
+  final bool isSynced;
+  @HiveField(11)
+  final DateTime? updatedAt;
+  @HiveField(12)
+  final String? userId;
 
   BusinessProfile({
     required this.companyName,
@@ -48,6 +54,9 @@ class BusinessProfile {
     this.googleSheetsSyncEnabled = false,
     this.googleSheetsSpreadsheetId,
     this.googleSheetsServiceAccountJson,
+    this.isSynced = false,
+    this.updatedAt,
+    this.userId,
   });
 
   Map<String, dynamic> toJson() {
@@ -66,6 +75,9 @@ class BusinessProfile {
       'googleSheetsSyncEnabled': googleSheetsSyncEnabled,
       'googleSheetsSpreadsheetId': googleSheetsSpreadsheetId,
       'googleSheetsServiceAccountJson': googleSheetsServiceAccountJson,
+      'isSynced': isSynced,
+      'updatedAt': updatedAt?.toIso8601String(),
+      'user_id': userId,
     };
   }
 
@@ -81,6 +93,11 @@ class BusinessProfile {
       bankDetails: json['bankDetails'],
       website: json['website'],
       mobile: json['mobile'],
+      isSynced: json['isSynced'] ?? false,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      userId: json['user_id'],
       defaultVatRate: (json['defaultVatRate'] as num?)?.toDouble() ?? 5.0,
       googleSheetsSyncEnabled: json['googleSheetsSyncEnabled'] ?? false,
       googleSheetsSpreadsheetId: json['googleSheetsSpreadsheetId'],

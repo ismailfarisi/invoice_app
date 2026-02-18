@@ -8,6 +8,10 @@ import 'dart:convert';
 import 'package:flutter_invoice_app/core/services/sync_service.dart';
 import 'package:flutter_invoice_app/core/utils/file_utils.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_invoice_app/core/services/supabase_service.dart';
+import 'package:flutter_invoice_app/features/auth/presentation/screens/auth_screen.dart';
+import 'package:flutter_invoice_app/features/sync/presentation/providers/sync_provider.dart';
+import 'package:flutter_invoice_app/features/auth/presentation/providers/auth_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -204,6 +208,106 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Widget _buildAuthSection(BuildContext context, WidgetRef ref) {
+    final userState = ref.watch(userProvider);
+    final user = userState.value;
+    final syncState = ref.watch(syncProvider);
+    final isLoading = syncState is AsyncLoading;
+
+    if (user == null) {
+      return FilledButton.icon(
+        onPressed: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (context) => const AuthScreen()));
+        },
+        icon: const Icon(Icons.login),
+        label: const Text('Login / Register to Sync'),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(double.infinity, 48),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              child: Text(user.email!.substring(0, 1).toUpperCase()),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user.email ?? 'User',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const Text(
+                    'Logged in',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await ref.read(supabaseServiceProvider).signOut();
+              },
+            ),
+          ],
+        ),
+        const Divider(height: 32),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        ref.read(syncProvider.notifier).sync().then((_) {
+                          if (mounted &&
+                              ref.read(syncProvider) is! AsyncError) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Sync Completed!')),
+                            );
+                          }
+                        });
+                      },
+                icon: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.sync),
+                label: Text(isLoading ? 'Syncing...' : 'Sync Now'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (syncState is AsyncError)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Sync Error: ${syncState.error}',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -333,6 +437,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         maxLines: 4,
                       ),
+
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _vatRateController,
@@ -372,6 +477,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         },
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 24),
+                  _SettingsSection(
+                    title: 'Cloud Sync & Backup',
+                    icon: Icons.cloud_sync_outlined,
+                    children: [_buildAuthSection(context, ref)],
                   ),
                   const SizedBox(height: 24),
                   _SettingsSection(

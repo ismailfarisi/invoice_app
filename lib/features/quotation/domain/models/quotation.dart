@@ -59,6 +59,12 @@ class Quotation {
   final bool? isVatApplicable;
   @HiveField(18)
   final String? currency;
+  @HiveField(19)
+  final bool isSynced;
+  @HiveField(20)
+  final DateTime? updatedAt;
+  @HiveField(21)
+  final String? userId;
 
   Quotation({
     required this.id,
@@ -80,6 +86,9 @@ class Quotation {
     this.salesPerson,
     this.isVatApplicable = true,
     this.currency = 'AED',
+    this.isSynced = false,
+    this.updatedAt,
+    this.userId,
   });
 
   // Helper to convert to Invoice
@@ -125,6 +134,10 @@ class Quotation {
       'salesPerson': salesPerson,
       'isVatApplicable': isVatApplicable,
       'currency': currency,
+      'isSynced': isSynced,
+      'updatedAt': updatedAt?.toIso8601String(),
+      'user_id': userId,
+      'client_id': client.id,
     };
   }
 
@@ -159,6 +172,11 @@ class Quotation {
       salesPerson: json['salesPerson'],
       isVatApplicable: json['isVatApplicable'] ?? true,
       currency: json['currency'] ?? 'AED',
+      isSynced: json['isSynced'] ?? false,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      userId: json['user_id'],
     );
   }
 }

@@ -55,6 +55,12 @@ class ProformaInvoice {
   final String? currency;
   @HiveField(17)
   final String? project;
+  @HiveField(18)
+  final bool isSynced;
+  @HiveField(19)
+  final DateTime? updatedAt;
+  @HiveField(20)
+  final String? userId;
 
   ProformaInvoice({
     required this.id,
@@ -75,6 +81,9 @@ class ProformaInvoice {
     this.isVatApplicable = true,
     this.currency = 'AED',
     this.project,
+    this.isSynced = false,
+    this.updatedAt,
+    this.userId,
   });
 
   // Helper to convert to Invoice
@@ -119,6 +128,10 @@ class ProformaInvoice {
       'isVatApplicable': isVatApplicable,
       'currency': currency,
       'project': project,
+      'isSynced': isSynced,
+      'updatedAt': updatedAt?.toIso8601String(),
+      'user_id': userId,
+      'client_id': client.id,
     };
   }
 
@@ -152,6 +165,11 @@ class ProformaInvoice {
       isVatApplicable: json['isVatApplicable'] ?? true,
       currency: json['currency'] ?? 'AED',
       project: json['project'],
+      isSynced: json['isSynced'] ?? false,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      userId: json['user_id'],
     );
   }
 }

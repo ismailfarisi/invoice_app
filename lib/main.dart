@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_invoice_app/core/config/supabase_config.dart';
 import 'package:flutter_invoice_app/core/theme/app_theme.dart';
 import 'package:flutter_invoice_app/features/dashboard/dashboard_screen.dart'; // We'll create this next
 import 'package:hive_flutter/hive_flutter.dart';
@@ -13,6 +15,8 @@ import 'package:flutter_invoice_app/core/services/sync_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(url: kSupabaseUrl, anonKey: kSupabaseAnonKey);
 
   await Hive.initFlutter();
 
