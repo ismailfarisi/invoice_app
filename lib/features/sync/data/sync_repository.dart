@@ -14,56 +14,300 @@ final syncRepositoryProvider = Provider((ref) {
   return SyncRepository(supabase);
 });
 
+class SyncStats {
+  int pushed = 0;
+  int pulled = 0;
+  String? error;
+
+  void add(SyncStats other) {
+    pushed += other.pushed;
+    pulled += other.pulled;
+    if (other.error != null) error = other.error;
+  }
+}
+
 class SyncRepository {
   final SupabaseClient _supabase;
 
   SyncRepository(this._supabase);
 
-  Future<void> syncAll() async {
+  Future<SyncStats> syncAll() async {
+    final stats = SyncStats();
     final user = _supabase.auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      stats.error = 'No user logged in';
+      return stats;
+    }
 
-    // 1. Push Local Changes
-    await _pushSettings(user.id);
-    await _pushProducts(user.id);
-    await _pushClients(user.id);
-    await _pushInvoices(user.id);
-    await _pushQuotations(user.id);
-    await _pushLpos(user.id);
-    await _pushProformas(user.id);
-
-    // 2. Pull Remote Changes
     final lastSyncKey = 'last_sync_${user.id}';
     final box = await Hive.openBox('sync_meta');
-    final lastSyncStr = box.get(lastSyncKey);
-    final lastSync = lastSyncStr != null
-        ? DateTime.parse(lastSyncStr)
-        : DateTime.fromMillisecondsSinceEpoch(0);
 
-    await _pullSettings(user.id, lastSync);
-    await _pullProducts(user.id, lastSync);
-    await _pullClients(user.id, lastSync);
-    await _pullInvoices(user.id, lastSync);
-    await _pullQuotations(user.id, lastSync);
-    await _pullLpos(user.id, lastSync);
-    await _pullProformas(user.id, lastSync);
+    try {
+      // 1. Push Local Changes
+      stats.add(await _pushSettings(user.id));
+      stats.add(await _pushProducts(user.id));
+      stats.add(await _pushClients(user.id));
+      stats.add(await _pushInvoices(user.id));
+      stats.add(await _pushQuotations(user.id));
+      stats.add(await _pushLpos(user.id));
+      stats.add(await _pushProformas(user.id));
 
-    // 3. Update Last Sync Time
-    await box.put(lastSyncKey, DateTime.now().toIso8601String());
+      // 2. Pull Remote Changes
+      final lastSyncStr = box.get(lastSyncKey);
+      final lastSync = lastSyncStr != null
+          ? DateTime.parse(lastSyncStr).subtract(const Duration(minutes: 1))
+          : DateTime.fromMillisecondsSinceEpoch(0);
+
+      stats.add(await _pullSettings(user.id, lastSync));
+      stats.add(await _pullProducts(user.id, lastSync));
+      stats.add(await _pullClients(user.id, lastSync));
+      stats.add(await _pullInvoices(user.id, lastSync));
+      stats.add(await _pullQuotations(user.id, lastSync));
+      stats.add(await _pullLpos(user.id, lastSync));
+      stats.add(await _pullProformas(user.id, lastSync));
+
+      // 3. Update Last Sync Time
+      await box.put(lastSyncKey, DateTime.now().toIso8601String());
+    } catch (e) {
+      stats.error = e.toString();
+    }
+    return stats;
+  }
+
+  Future<void> resetSyncStatus() async {
+    final b1 = Hive.box<Invoice>('invoices');
+    final b2 = Hive.box<Quotation>('quotations');
+    final b3 = Hive.box<Client>('clients');
+    final b4 = Hive.box<Product>('products');
+    final b5 = Hive.box<Lpo>('lpos');
+    final b6 = Hive.box<ProformaInvoice>('proformas');
+    final b7 = Hive.box<BusinessProfile>('settings');
+
+    for (var key in b1.keys) {
+      final item = b1.get(key);
+      if (item != null) {
+        await b1.put(
+          key,
+          Invoice(
+            id: item.id,
+            invoiceNumber: item.invoiceNumber,
+            date: item.date,
+            dueDate: item.dueDate,
+            client: item.client,
+            items: item.items,
+            subtotal: item.subtotal,
+            taxAmount: item.taxAmount,
+            discount: item.discount,
+            total: item.total,
+            status: item.status,
+            notes: item.notes,
+            terms: item.terms,
+            termsAndConditions: item.termsAndConditions,
+            salesPerson: item.salesPerson,
+            isVatApplicable: item.isVatApplicable,
+            currency: item.currency,
+            placeOfSupply: item.placeOfSupply,
+            deliveryNote: item.deliveryNote,
+            paymentTerms: item.paymentTerms,
+            supplierReference: item.supplierReference,
+            otherReference: item.otherReference,
+            buyersOrderNumber: item.buyersOrderNumber,
+            buyersOrderDate: item.buyersOrderDate,
+            isSynced: false,
+            updatedAt: item.updatedAt,
+            userId: item.userId,
+          ),
+        );
+      }
+    }
+    for (var key in b2.keys) {
+      final item = b2.get(key);
+      if (item != null) {
+        await b2.put(
+          key,
+          Quotation(
+            id: item.id,
+            quotationNumber: item.quotationNumber,
+            date: item.date,
+            validUntil: item.validUntil,
+            client: item.client,
+            items: item.items,
+            subtotal: item.subtotal,
+            taxAmount: item.taxAmount,
+            discount: item.discount,
+            total: item.total,
+            status: item.status,
+            notes: item.notes,
+            terms: item.terms,
+            enquiryRef: item.enquiryRef,
+            project: item.project,
+            termsAndConditions: item.termsAndConditions,
+            salesPerson: item.salesPerson,
+            isVatApplicable: item.isVatApplicable,
+            currency: item.currency,
+            isSynced: false,
+            updatedAt: item.updatedAt,
+            userId: item.userId,
+          ),
+        );
+      }
+    }
+    for (var key in b3.keys) {
+      final item = b3.get(key);
+      if (item != null) {
+        await b3.put(
+          key,
+          Client(
+            id: item.id,
+            name: item.name,
+            email: item.email,
+            address: item.address,
+            phone: item.phone,
+            contactPerson: item.contactPerson,
+            taxId: item.taxId,
+            isSynced: false,
+            updatedAt: item.updatedAt,
+            userId: item.userId,
+          ),
+        );
+      }
+    }
+    for (var key in b4.keys) {
+      final item = b4.get(key);
+      if (item != null) {
+        await b4.put(
+          key,
+          Product(
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            unitPrice: item.unitPrice,
+            sku: item.sku,
+            stockQuantity: item.stockQuantity,
+            unit: item.unit,
+            isSynced: false,
+            updatedAt: item.updatedAt,
+            userId: item.userId,
+          ),
+        );
+      }
+    }
+    for (var key in b5.keys) {
+      final item = b5.get(key);
+      if (item != null) {
+        await b5.put(
+          key,
+          Lpo(
+            id: item.id,
+            lpoNumber: item.lpoNumber,
+            date: item.date,
+            expectedDeliveryDate: item.expectedDeliveryDate,
+            vendor: item.vendor,
+            items: item.items,
+            subtotal: item.subtotal,
+            taxAmount: item.taxAmount,
+            discount: item.discount,
+            total: item.total,
+            status: item.status,
+            notes: item.notes,
+            terms: item.terms,
+            termsAndConditions: item.termsAndConditions,
+            salesPerson: item.salesPerson,
+            isVatApplicable: item.isVatApplicable,
+            currency: item.currency,
+            placeOfSupply: item.placeOfSupply,
+            paymentTerms: item.paymentTerms,
+            otherReference: item.otherReference,
+            isSynced: false,
+            updatedAt: item.updatedAt,
+            userId: item.userId,
+          ),
+        );
+      }
+    }
+    for (var key in b6.keys) {
+      final item = b6.get(key);
+      if (item != null) {
+        await b6.put(
+          key,
+          ProformaInvoice(
+            id: item.id,
+            proformaNumber: item.proformaNumber,
+            date: item.date,
+            validUntil: item.validUntil,
+            client: item.client,
+            items: item.items,
+            subtotal: item.subtotal,
+            taxAmount: item.taxAmount,
+            discount: item.discount,
+            total: item.total,
+            status: item.status,
+            notes: item.notes,
+            terms: item.terms,
+            termsAndConditions: item.termsAndConditions,
+            salesPerson: item.salesPerson,
+            isVatApplicable: item.isVatApplicable,
+            currency: item.currency,
+            project: item.project,
+            isSynced: false,
+            updatedAt: item.updatedAt,
+            userId: item.userId,
+          ),
+        );
+      }
+    }
+    final profile = b7.get('profile');
+    if (profile != null) {
+      await b7.put(
+        'profile',
+        BusinessProfile(
+          companyName: profile.companyName,
+          email: profile.email,
+          phone: profile.phone,
+          address: profile.address,
+          taxId: profile.taxId,
+          logoPath: profile.logoPath,
+          currency: profile.currency,
+          bankDetails: profile.bankDetails,
+          website: profile.website,
+          mobile: profile.mobile,
+          isSynced: false,
+          updatedAt: profile.updatedAt,
+          userId: profile.userId,
+        ),
+      );
+    }
+  }
+
+  /// Filters out complex fields that are not columns in the Supabase schema
+  Map<String, dynamic> _filterSupabaseJson(Map<String, dynamic> json) {
+    final filtered = Map<String, dynamic>.from(json);
+    // Remove fields that are not database columns
+    filtered.remove('client');
+    filtered.remove('vendor');
+    filtered.remove('items');
+    filtered.remove('isSynced');
+    return filtered;
   }
 
   // --- Settings ---
-  Future<void> _pushSettings(String userId) async {
+  Future<SyncStats> _pushSettings(String userId) async {
+    final stats = SyncStats();
     final box = Hive.box<BusinessProfile>('settings');
-    if (box.isEmpty) return;
+    if (box.isEmpty) return stats;
 
     final profile = box.get('profile'); // Use correct key
     if (profile != null && !profile.isSynced) {
-      await _supabase.from('business_profiles').upsert({
-        ...profile.toJson(),
-        'user_id': userId,
-        'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id');
+      await _supabase
+          .from('business_profiles')
+          .upsert(
+            _filterSupabaseJson({
+              ...profile.toJson(),
+              'user_id': userId,
+              'updatedAt': DateTime.now().toIso8601String(),
+            }),
+            onConflict: 'user_id',
+          );
 
       await box.put(
         'profile', // Use correct key
@@ -83,15 +327,18 @@ class SyncRepository {
           userId: userId,
         ),
       );
+      stats.pushed++;
     }
+    return stats;
   }
 
-  Future<void> _pullSettings(String userId, DateTime lastSync) async {
+  Future<SyncStats> _pullSettings(String userId, DateTime lastSync) async {
+    final stats = SyncStats();
     final response = await _supabase
         .from('business_profiles')
         .select()
         .eq('user_id', userId)
-        .gt('updated_at', lastSync.toIso8601String());
+        .gt('updatedAt', lastSync.toIso8601String());
 
     if (response.isNotEmpty) {
       final data = response.first;
@@ -116,20 +363,27 @@ class SyncRepository {
           userId: userId,
         ),
       );
+      stats.pulled++;
     }
+    return stats;
   }
 
   // --- Products ---
-  Future<void> _pushProducts(String userId) async {
+  Future<SyncStats> _pushProducts(String userId) async {
+    final stats = SyncStats();
     final box = Hive.box<Product>('products');
     for (var key in box.keys) {
       final item = box.get(key);
       if (item != null && !item.isSynced) {
-        await _supabase.from('products').upsert({
-          ...item.toJson(),
-          'user_id': userId,
-          'updated_at': DateTime.now().toIso8601String(),
-        });
+        await _supabase
+            .from('products')
+            .upsert(
+              _filterSupabaseJson({
+                ...item.toJson(),
+                'user_id': userId,
+                'updatedAt': DateTime.now().toIso8601String(),
+              }),
+            );
 
         await box.put(
           item.id, // Ensure consistent key usage
@@ -146,16 +400,19 @@ class SyncRepository {
             userId: userId,
           ),
         );
+        stats.pushed++;
       }
     }
+    return stats;
   }
 
-  Future<void> _pullProducts(String userId, DateTime lastSync) async {
+  Future<SyncStats> _pullProducts(String userId, DateTime lastSync) async {
+    final stats = SyncStats();
     final response = await _supabase
         .from('products')
         .select()
         .eq('user_id', userId)
-        .gt('updated_at', lastSync.toIso8601String());
+        .gt('updatedAt', lastSync.toIso8601String());
 
     final box = Hive.box<Product>('products');
     for (var data in response) {
@@ -176,20 +433,27 @@ class SyncRepository {
 
       // Use ID as key, consistent with Repository
       await box.put(product.id, syncedProduct);
+      stats.pulled++;
     }
+    return stats;
   }
 
   // --- Clients ---
-  Future<void> _pushClients(String userId) async {
+  Future<SyncStats> _pushClients(String userId) async {
+    final stats = SyncStats();
     final box = Hive.box<Client>('clients');
     for (var key in box.keys) {
       final item = box.get(key);
       if (item != null && !item.isSynced) {
-        await _supabase.from('clients').upsert({
-          ...item.toJson(),
-          'user_id': userId,
-          'updated_at': DateTime.now().toIso8601String(),
-        });
+        await _supabase
+            .from('clients')
+            .upsert(
+              _filterSupabaseJson({
+                ...item.toJson(),
+                'user_id': userId,
+                'updatedAt': DateTime.now().toIso8601String(),
+              }),
+            );
 
         await box.put(
           item.id,
@@ -206,16 +470,19 @@ class SyncRepository {
             userId: userId,
           ),
         );
+        stats.pushed++;
       }
     }
+    return stats;
   }
 
-  Future<void> _pullClients(String userId, DateTime lastSync) async {
+  Future<SyncStats> _pullClients(String userId, DateTime lastSync) async {
+    final stats = SyncStats();
     final response = await _supabase
         .from('clients')
         .select()
         .eq('user_id', userId)
-        .gt('updated_at', lastSync.toIso8601String());
+        .gt('updatedAt', lastSync.toIso8601String());
 
     final box = Hive.box<Client>('clients');
     for (var data in response) {
@@ -235,20 +502,27 @@ class SyncRepository {
       );
 
       await box.put(client.id, syncedClient);
+      stats.pulled++;
     }
+    return stats;
   }
 
   // --- Invoices ---
-  Future<void> _pushInvoices(String userId) async {
+  Future<SyncStats> _pushInvoices(String userId) async {
+    final stats = SyncStats();
     final box = Hive.box<Invoice>('invoices');
     for (var key in box.keys) {
       final item = box.get(key);
       if (item != null && !item.isSynced) {
-        await _supabase.from('invoices').upsert({
-          ...item.toJson(),
-          'user_id': userId,
-          'updated_at': DateTime.now().toIso8601String(),
-        });
+        await _supabase
+            .from('invoices')
+            .upsert(
+              _filterSupabaseJson({
+                ...item.toJson(),
+                'user_id': userId,
+                'updatedAt': DateTime.now().toIso8601String(),
+              }),
+            );
 
         await _supabase
             .from('invoice_items')
@@ -297,18 +571,19 @@ class SyncRepository {
             userId: userId,
           ),
         );
+        stats.pushed++;
       }
     }
+    return stats;
   }
 
-  Future<void> _pullInvoices(String userId, DateTime lastSync) async {
+  Future<SyncStats> _pullInvoices(String userId, DateTime lastSync) async {
+    final stats = SyncStats();
     final response = await _supabase
         .from('invoices')
-        .select(
-          '*, invoice_items(*), client:clients(*)',
-        ) // Join items and client
+        .select('*, invoice_items(*), client:clients(*)')
         .eq('user_id', userId)
-        .gt('updated_at', lastSync.toIso8601String());
+        .gt('updatedAt', lastSync.toIso8601String());
 
     final box = Hive.box<Invoice>('invoices');
     for (var data in response) {
@@ -354,77 +629,92 @@ class SyncRepository {
       );
 
       await box.put(invoice.id, syncedInvoice);
+      stats.pulled++;
     }
+    return stats;
   }
 
   // --- Quotations ---
-  Future<void> _pushQuotations(String userId) async {
+  Future<SyncStats> _pushQuotations(String userId) async {
+    final stats = SyncStats();
     final box = Hive.box<Quotation>('quotations');
     for (var key in box.keys) {
       final item = box.get(key);
       if (item != null && !item.isSynced) {
-        await _supabase.from('quotations').upsert({
-          ...item.toJson(),
-          'user_id': userId,
-          'updated_at': DateTime.now().toIso8601String(),
-        });
+        try {
+          await _supabase
+              .from('quotations')
+              .upsert(
+                _filterSupabaseJson({
+                  ...item.toJson(),
+                  'user_id': userId,
+                  'updatedAt': DateTime.now().toIso8601String(),
+                }),
+              )
+              .select();
 
-        await _supabase
-            .from('quotation_items')
-            .delete()
-            .eq('quotation_id', item.id);
+          await _supabase
+              .from('quotation_items')
+              .delete()
+              .eq('quotation_id', item.id);
 
-        final itemsData = item.items
-            .map(
-              (e) => {
-                ...e.toJson(),
-                'quotation_id': item.id,
-                'user_id': userId,
-              },
-            )
-            .toList();
+          final itemsData = item.items
+              .map(
+                (e) => {
+                  ...e.toJson(),
+                  'quotation_id': item.id,
+                  'user_id': userId,
+                },
+              )
+              .toList();
 
-        if (itemsData.isNotEmpty) {
-          await _supabase.from('quotation_items').insert(itemsData);
+          if (itemsData.isNotEmpty) {
+            await _supabase.from('quotation_items').insert(itemsData);
+          }
+
+          await box.put(
+            item.id,
+            Quotation(
+              id: item.id,
+              quotationNumber: item.quotationNumber,
+              date: item.date,
+              validUntil: item.validUntil,
+              client: item.client,
+              items: item.items,
+              subtotal: item.subtotal,
+              taxAmount: item.taxAmount,
+              discount: item.discount,
+              total: item.total,
+              status: item.status,
+              notes: item.notes,
+              terms: item.terms,
+              enquiryRef: item.enquiryRef,
+              project: item.project,
+              termsAndConditions: item.termsAndConditions,
+              salesPerson: item.salesPerson,
+              isVatApplicable: item.isVatApplicable,
+              currency: item.currency,
+              isSynced: true,
+              updatedAt: DateTime.now(),
+              userId: userId,
+            ),
+          );
+          stats.pushed++;
+        } catch (e) {
+          throw 'Failed to sync quotation ${item.quotationNumber}: $e';
         }
-
-        await box.put(
-          item.id,
-          Quotation(
-            id: item.id,
-            quotationNumber: item.quotationNumber,
-            date: item.date,
-            validUntil: item.validUntil,
-            client: item.client,
-            items: item.items,
-            subtotal: item.subtotal,
-            taxAmount: item.taxAmount,
-            discount: item.discount,
-            total: item.total,
-            status: item.status,
-            notes: item.notes,
-            terms: item.terms,
-            enquiryRef: item.enquiryRef,
-            project: item.project,
-            termsAndConditions: item.termsAndConditions,
-            salesPerson: item.salesPerson,
-            isVatApplicable: item.isVatApplicable,
-            currency: item.currency,
-            isSynced: true,
-            updatedAt: DateTime.now(),
-            userId: userId,
-          ),
-        );
       }
     }
+    return stats;
   }
 
-  Future<void> _pullQuotations(String userId, DateTime lastSync) async {
+  Future<SyncStats> _pullQuotations(String userId, DateTime lastSync) async {
+    final stats = SyncStats();
     final response = await _supabase
         .from('quotations')
         .select('*, quotation_items(*), client:clients(*)')
         .eq('user_id', userId)
-        .gt('updated_at', lastSync.toIso8601String());
+        .gt('updatedAt', lastSync.toIso8601String());
 
     final box = Hive.box<Quotation>('quotations');
     for (var data in response) {
@@ -463,20 +753,28 @@ class SyncRepository {
       );
 
       await box.put(quotation.id, syncedQuotation);
+      stats.pulled++;
     }
+    return stats;
   }
 
   // --- LPOs ---
-  Future<void> _pushLpos(String userId) async {
+  Future<SyncStats> _pushLpos(String userId) async {
+    final stats = SyncStats();
     final box = Hive.box<Lpo>('lpos');
     for (var key in box.keys) {
       final item = box.get(key);
       if (item != null && !item.isSynced) {
-        await _supabase.from('lpos').upsert({
-          ...item.toJson(),
-          'user_id': userId,
-          'updated_at': DateTime.now().toIso8601String(),
-        });
+        await _supabase
+            .from('lpos')
+            .upsert(
+              _filterSupabaseJson({
+                ...item.toJson(),
+                'user_id': userId,
+                'updatedAt': DateTime.now().toIso8601String(),
+              }),
+            )
+            .select();
 
         await _supabase.from('lpo_items').delete().eq('lpo_id', item.id);
         final itemsData = item.items
@@ -515,17 +813,19 @@ class SyncRepository {
             userId: userId,
           ),
         );
+        stats.pushed++;
       }
     }
+    return stats;
   }
 
-  Future<void> _pullLpos(String userId, DateTime lastSync) async {
+  Future<SyncStats> _pullLpos(String userId, DateTime lastSync) async {
+    final stats = SyncStats();
     final response = await _supabase
         .from('lpos')
         .select('*, lpo_items(*), vendor:clients(*)')
         .eq('user_id', userId)
-        .gt('updated_at', lastSync.toIso8601String());
-
+        .gt('updatedAt', lastSync.toIso8601String());
     final box = Hive.box<Lpo>('lpos');
     for (var data in response) {
       final fixedData = Map<String, dynamic>.from(data);
@@ -564,20 +864,27 @@ class SyncRepository {
       );
 
       await box.put(lpo.id, syncedLpo);
+      stats.pulled++;
     }
+    return stats;
   }
 
   // --- Proformas ---
-  Future<void> _pushProformas(String userId) async {
+  Future<SyncStats> _pushProformas(String userId) async {
+    final stats = SyncStats();
     final box = Hive.box<ProformaInvoice>('proformas');
     for (var key in box.keys) {
       final item = box.get(key);
       if (item != null && !item.isSynced) {
-        await _supabase.from('proformas').upsert({
-          ...item.toJson(),
-          'user_id': userId,
-          'updated_at': DateTime.now().toIso8601String(),
-        });
+        await _supabase
+            .from('proformas')
+            .upsert(
+              _filterSupabaseJson({
+                ...item.toJson(),
+                'user_id': userId,
+                'updatedAt': DateTime.now().toIso8601String(),
+              }),
+            );
 
         await _supabase
             .from('proforma_items')
@@ -619,16 +926,19 @@ class SyncRepository {
             userId: userId,
           ),
         );
+        stats.pushed++;
       }
     }
+    return stats;
   }
 
-  Future<void> _pullProformas(String userId, DateTime lastSync) async {
+  Future<SyncStats> _pullProformas(String userId, DateTime lastSync) async {
+    final stats = SyncStats();
     final response = await _supabase
         .from('proformas')
         .select('*, proforma_items(*), client:clients(*)')
         .eq('user_id', userId)
-        .gt('updated_at', lastSync.toIso8601String());
+        .gt('updatedAt', lastSync.toIso8601String());
 
     final box = Hive.box<ProformaInvoice>('proformas');
     for (var data in response) {
@@ -666,6 +976,8 @@ class SyncRepository {
       );
 
       await box.put(proforma.id, syncedProforma);
+      stats.pulled++;
     }
+    return stats;
   }
 }

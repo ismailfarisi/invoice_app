@@ -33,14 +33,7 @@ class PdfHeaders {
                         color: PdfColors.blue900,
                       ),
                     ),
-                    if (profile?.address != null)
-                      pw.Container(
-                        width: 200,
-                        child: pw.Text(
-                          profile?.address ?? '',
-                          style: const pw.TextStyle(fontSize: 9),
-                        ),
-                      ),
+                    // Removed address here to match delivery note style
                   ],
                 ),
               ],
@@ -74,7 +67,6 @@ class PdfHeaders {
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
           ),
         ),
-        PdfStyles.buildCustomDivider(),
       ],
     );
   }

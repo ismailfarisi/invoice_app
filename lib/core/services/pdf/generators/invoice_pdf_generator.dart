@@ -39,7 +39,7 @@ class InvoicePdfGenerator {
           return [
             pw.SizedBox(height: 10),
             _buildInvoiceInfoBox(invoice, profile),
-            _buildItemsTable(invoice),
+            _buildItemsTable(invoice, profile),
             _buildTotalSection(invoice, profile),
             pw.SizedBox(height: 10),
             PdfCommonWidgets.buildTermsAndConditions(
@@ -224,7 +224,12 @@ class InvoicePdfGenerator {
     );
   }
 
-  static pw.Widget _buildItemsTable(Invoice invoice) {
+  static pw.Widget _buildItemsTable(Invoice invoice, BusinessProfile? profile) {
+    final vatRate = profile?.defaultVatRate ?? 5.0;
+    final vatRateString = vatRate == vatRate.toInt()
+        ? vatRate.toInt().toString()
+        : vatRate.toString();
+
     final isVat = invoice.isVatApplicable ?? true;
     return pw.Container(
       decoration: pw.BoxDecoration(
@@ -240,8 +245,8 @@ class InvoicePdfGenerator {
           0: const pw.FixedColumnWidth(30), // SI No
           1: const pw.FlexColumnWidth(4), // Description
           2: const pw.FixedColumnWidth(50), // Quantity
-          3: const pw.FixedColumnWidth(60), // Rate
-          4: const pw.FixedColumnWidth(40), // Per
+          3: const pw.FixedColumnWidth(40), // Per
+          4: const pw.FixedColumnWidth(60), // Rate
           5: const pw.FixedColumnWidth(70), // Amount
           if (isVat) 6: const pw.FixedColumnWidth(40), // VAT %
         },
@@ -255,9 +260,9 @@ class InvoicePdfGenerator {
                 'Description of Goods',
                 isHeader: true,
               ),
-              PdfCommonWidgets.buildTableCell('Quantity', isHeader: true),
-              PdfCommonWidgets.buildTableCell('Rate', isHeader: true),
+              PdfCommonWidgets.buildTableCell('Qty', isHeader: true),
               PdfCommonWidgets.buildTableCell('per', isHeader: true),
+              PdfCommonWidgets.buildTableCell('Rate', isHeader: true),
               PdfCommonWidgets.buildTableCell('Amount', isHeader: true),
               if (isVat)
                 PdfCommonWidgets.buildTableCell('VAT %', isHeader: true),
@@ -278,16 +283,15 @@ class InvoicePdfGenerator {
                   item.quantity.toStringAsFixed(0),
                 ),
                 PdfCommonWidgets.buildTableCell(
-                  item.unitPrice.toStringAsFixed(2),
-                ),
-                PdfCommonWidgets.buildTableCell(
                   (item.unit == null || item.unit!.isEmpty)
                       ? 'NOS'
                       : item.unit!,
                 ),
+                PdfCommonWidgets.buildTableCell(
+                  item.unitPrice.toStringAsFixed(2),
+                ),
                 PdfCommonWidgets.buildTableCell(item.total.toStringAsFixed(2)),
-                if (isVat)
-                  PdfCommonWidgets.buildTableCell('10%'), // 10% for Invoice
+                if (isVat) PdfCommonWidgets.buildTableCell('$vatRateString%'),
               ],
             );
           }).toList(),
@@ -305,6 +309,11 @@ class InvoicePdfGenerator {
       invoice.total,
       currencyCode: invoice.currency ?? 'AED',
     );
+
+    final vatRate = profile?.defaultVatRate ?? 5.0;
+    final vatRateString = vatRate == vatRate.toInt()
+        ? vatRate.toInt().toString()
+        : vatRate.toString();
 
     return pw.Container(
       decoration: pw.BoxDecoration(
@@ -346,7 +355,7 @@ class InvoicePdfGenerator {
                 ),
                 if ((invoice.isVatApplicable ?? true) && invoice.taxAmount > 0)
                   _buildTotalRow(
-                    'VAT (10%)',
+                    'VAT ($vatRateString%)',
                     invoice.taxAmount,
                     currency: invoice.currency ?? 'AED',
                   ),

@@ -270,11 +270,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ? null
                     : () {
                         ref.read(syncProvider.notifier).sync().then((_) {
-                          if (mounted &&
-                              ref.read(syncProvider) is! AsyncError) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Sync Completed!')),
-                            );
+                          if (mounted) {
+                            final stats = ref.read(syncProvider).value;
+                            if (stats != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Sync Completed! Pushed: ${stats.pushed}, Pulled: ${stats.pulled}',
+                                  ),
+                                ),
+                              );
+                            } else if (ref.read(syncProvider) is! AsyncError) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Sync Completed!'),
+                                ),
+                              );
+                            }
                           }
                         });
                       },
@@ -304,6 +316,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
+        if (syncState.hasValue && syncState.value != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Last Sync: Pushed ${syncState.value!.pushed}, Pulled ${syncState.value!.pulled}',
+              style: const TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Reset Sync Status?'),
+                content: const Text(
+                  'This will mark all items as not synced, forcing a re-upload on next sync. Use this if you have missing data in cloud.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Reset'),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true) {
+              await ref.read(syncProvider.notifier).resetSync();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Sync status reset. Click "Sync Now" to re-upload.',
+                    ),
+                  ),
+                );
+              }
+            }
+          },
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reset Sync Status (Troubleshoot)'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 40),
+            foregroundColor: Theme.of(context).colorScheme.secondary,
+          ),
+        ),
       ],
     );
   }

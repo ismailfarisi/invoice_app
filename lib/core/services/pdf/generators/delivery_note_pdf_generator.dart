@@ -49,7 +49,9 @@ class DeliveryNotePdfGenerator {
               pw.Text(invoice.terms!, style: const pw.TextStyle(fontSize: 8)),
             ],
             pw.Spacer(),
+            pw.SizedBox(height: 30),
             _buildDeliveryNoteSignatures(invoice, profile),
+            pw.SizedBox(height: 50),
           ];
         },
       ),
