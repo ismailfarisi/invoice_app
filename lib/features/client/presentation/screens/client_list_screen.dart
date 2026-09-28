@@ -238,6 +238,8 @@ void _generateAndNavigateToStatement(
   final dateStr = DateFormat('yyyyMMdd').format(DateTime.now());
   final sanitizedClientName = client.name.replaceAll(RegExp(r'\s+'), '_');
 
+  if (!context.mounted) return;
+
   Navigator.push(
     context,
     MaterialPageRoute(
@@ -249,15 +251,19 @@ void _generateAndNavigateToStatement(
           profile: profile,
         ),
         onExportExcel: () async {
-          final bytes = await ExcelService().generateCustomerStatement(
-            statement,
-            profile: profile,
-          );
-          if (bytes != null) {
-            await FileUtils.shareFile(
-              bytes,
-              'Statement_${sanitizedClientName}_$dateStr.xlsx',
+          try {
+            final bytes = await ExcelService().generateCustomerStatement(
+              statement,
+              profile: profile,
             );
+            if (bytes != null) {
+              await FileUtils.shareFile(
+                bytes,
+                'Statement_${sanitizedClientName}_$dateStr.xlsx',
+              );
+            }
+          } catch (e) {
+            debugPrint('Failed to export statement to Excel: $e');
           }
         },
       ),
@@ -332,7 +338,7 @@ class _StatementOptionsBottomSheetState
       case _StatementDateFilter.customRange:
         if (_customDateRange == null) {
           await _pickCustomRange();
-          if (_customDateRange == null) return;
+          if (!mounted || _customDateRange == null) return;
         }
         fromDate = _customDateRange!.start;
         toDate = DateTime(
