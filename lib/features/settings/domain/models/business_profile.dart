@@ -47,7 +47,7 @@ class BusinessProfile {
     this.taxId,
     this.logoPath,
     this.currency = 'USD',
-    this.bankDetails,
+    String? bankDetails,
     this.website,
     this.mobile,
     this.defaultVatRate = 5.0,
@@ -57,7 +57,19 @@ class BusinessProfile {
     this.isSynced = false,
     this.updatedAt,
     this.userId,
-  });
+    String? bankName,
+    String? bankAccountName,
+    String? bankAccountNumber,
+    String? bankIban,
+    String? bankSwift,
+  }) : bankDetails = bankDetails ??
+            _formatBankDetails(
+              bankName: bankName,
+              bankAccountName: bankAccountName,
+              bankAccountNumber: bankAccountNumber,
+              bankIban: bankIban,
+              bankSwift: bankSwift,
+            );
 
   Map<String, dynamic> toJson() {
     return {
@@ -105,6 +117,64 @@ class BusinessProfile {
     );
   }
 
+  String? get bankName => _extractBankField(['Bank Name', 'Bank']);
+  String? get bankAccountName =>
+      _extractBankField(['Account Name', 'Beneficiary', 'A/c Name']);
+  String? get bankAccountNumber => _extractBankField([
+        'Account #',
+        'Account No',
+        'Account Number',
+        'Account',
+        'A/c No',
+      ]);
+  String? get bankIban => _extractBankField(['IBAN']);
+  String? get bankSwift =>
+      _extractBankField(['SWIFT/BIC', 'SWIFT', 'BIC', 'Sort Code', 'IFSC']);
+
+  String? _extractBankField(List<String> keys) {
+    if (bankDetails == null || bankDetails!.isEmpty) return null;
+    final lines = bankDetails!.split('\n');
+    for (final line in lines) {
+      final colonIdx = line.indexOf(':');
+      if (colonIdx != -1) {
+        final key = line.substring(0, colonIdx).trim().toLowerCase();
+        final value = line.substring(colonIdx + 1).trim();
+        for (final k in keys) {
+          if (key == k.toLowerCase()) {
+            return value.isNotEmpty ? value : null;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  static String? _formatBankDetails({
+    String? bankName,
+    String? bankAccountName,
+    String? bankAccountNumber,
+    String? bankIban,
+    String? bankSwift,
+  }) {
+    final parts = <String>[];
+    if (bankName != null && bankName.isNotEmpty) {
+      parts.add('Bank Name: $bankName');
+    }
+    if (bankAccountName != null && bankAccountName.isNotEmpty) {
+      parts.add('Account Name: $bankAccountName');
+    }
+    if (bankAccountNumber != null && bankAccountNumber.isNotEmpty) {
+      parts.add('Account: $bankAccountNumber');
+    }
+    if (bankIban != null && bankIban.isNotEmpty) {
+      parts.add('IBAN: $bankIban');
+    }
+    if (bankSwift != null && bankSwift.isNotEmpty) {
+      parts.add('SWIFT: $bankSwift');
+    }
+    return parts.isEmpty ? null : parts.join('\n');
+  }
+
   BusinessProfile copyWith({
     String? companyName,
     String? email,
@@ -120,7 +190,21 @@ class BusinessProfile {
     bool? googleSheetsSyncEnabled,
     String? googleSheetsSpreadsheetId,
     String? googleSheetsServiceAccountJson,
+    String? bankName,
+    String? bankAccountName,
+    String? bankAccountNumber,
+    String? bankIban,
+    String? bankSwift,
   }) {
+    final newBankDetails = bankDetails ??
+        _formatBankDetails(
+          bankName: bankName,
+          bankAccountName: bankAccountName,
+          bankAccountNumber: bankAccountNumber,
+          bankIban: bankIban,
+          bankSwift: bankSwift,
+        );
+
     return BusinessProfile(
       companyName: companyName ?? this.companyName,
       email: email ?? this.email,
@@ -129,7 +213,7 @@ class BusinessProfile {
       taxId: taxId ?? this.taxId,
       logoPath: logoPath ?? this.logoPath,
       currency: currency ?? this.currency,
-      bankDetails: bankDetails ?? this.bankDetails,
+      bankDetails: newBankDetails ?? this.bankDetails,
       website: website ?? this.website,
       mobile: mobile ?? this.mobile,
       defaultVatRate: defaultVatRate ?? this.defaultVatRate,

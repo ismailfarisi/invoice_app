@@ -4,12 +4,14 @@ import 'package:flutter_invoice_app/features/quotation/domain/models/quotation.d
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
 import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
 import 'package:flutter_invoice_app/features/proforma/domain/models/proforma.dart';
+import 'package:flutter_invoice_app/features/client/domain/models/customer_statement.dart';
 import 'generators/invoice_pdf_generator.dart';
 import 'generators/quotation_pdf_generator.dart';
 import 'generators/lpo_pdf_generator.dart';
 import 'generators/proforma_pdf_generator.dart';
 import 'generators/letterhead_pdf_generator.dart';
 import 'generators/delivery_note_pdf_generator.dart';
+import 'generators/customer_statement_pdf_generator.dart';
 
 class PdfService {
   Future<Uint8List> generateInvoice(
@@ -49,5 +51,12 @@ class PdfService {
     BusinessProfile? profile,
   }) {
     return DeliveryNotePdfGenerator.generate(invoice, profile: profile);
+  }
+
+  Future<Uint8List> generateCustomerStatement(
+    CustomerStatement statement, {
+    BusinessProfile? profile,
+  }) {
+    return CustomerStatementPdfGenerator.generate(statement, profile: profile);
   }
 }
