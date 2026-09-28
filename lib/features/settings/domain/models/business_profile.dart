@@ -196,14 +196,21 @@ class BusinessProfile {
     String? bankIban,
     String? bankSwift,
   }) {
+    final hasAnyBankParam = bankName != null ||
+        bankAccountName != null ||
+        bankAccountNumber != null ||
+        bankIban != null ||
+        bankSwift != null;
     final newBankDetails = bankDetails ??
-        _formatBankDetails(
-          bankName: bankName,
-          bankAccountName: bankAccountName,
-          bankAccountNumber: bankAccountNumber,
-          bankIban: bankIban,
-          bankSwift: bankSwift,
-        );
+        (hasAnyBankParam
+            ? _formatBankDetails(
+                bankName: bankName ?? this.bankName,
+                bankAccountName: bankAccountName ?? this.bankAccountName,
+                bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
+                bankIban: bankIban ?? this.bankIban,
+                bankSwift: bankSwift ?? this.bankSwift,
+              )
+            : this.bankDetails);
 
     return BusinessProfile(
       companyName: companyName ?? this.companyName,

@@ -236,7 +236,7 @@ void _generateAndNavigateToStatement(
   );
 
   final dateStr = DateFormat('yyyyMMdd').format(DateTime.now());
-  final sanitizedClientName = client.name.replaceAll(RegExp(r'\s+'), '_');
+  final sanitizedClientName = client.name.replaceAll(RegExp(r'[^\w\.-]'), '_');
 
   if (!context.mounted) return;
 
@@ -264,6 +264,13 @@ void _generateAndNavigateToStatement(
             }
           } catch (e) {
             debugPrint('Failed to export statement to Excel: $e');
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to export statement to Excel.'),
+                ),
+              );
+            }
           }
         },
       ),

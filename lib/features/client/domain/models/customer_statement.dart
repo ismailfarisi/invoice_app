@@ -71,15 +71,15 @@ class CustomerStatement {
         return false;
       }
       if (toDate != null &&
-          invDate.isAfter(DateTime(toDate.year, toDate.month, toDate.day, 23, 59, 59))) {
+          invDate.isAfter(DateTime(toDate.year, toDate.month, toDate.day, 23, 59, 59, 999))) {
         return false;
       }
       return true;
     }).toList();
 
     clientInvoices.sort((a, b) {
-      final dateA = a.date ?? DateTime(0);
-      final dateB = b.date ?? DateTime(0);
+      final dateA = a.date ?? now;
+      final dateB = b.date ?? now;
       return dateA.compareTo(dateB);
     });
 
