@@ -7,6 +7,9 @@ final businessProfileRepositoryProvider = Provider(
   (ref) => BusinessProfileRepository(),
 );
 
+final settingsRepositoryProvider = businessProfileRepositoryProvider;
+typedef SettingsRepository = BusinessProfileRepository;
+
 class BusinessProfileRepository {
   final Box<BusinessProfile> _box = Hive.box<BusinessProfile>('settings');
 
@@ -15,6 +18,8 @@ class BusinessProfileRepository {
   BusinessProfile? getProfile() {
     return _box.get('profile');
   }
+
+  BusinessProfile? getBusinessProfile() => getProfile();
 
   Future<void> saveProfile(BusinessProfile profile) async {
     await _box.put('profile', profile);
