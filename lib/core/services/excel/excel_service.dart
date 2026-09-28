@@ -2,8 +2,10 @@ import 'dart:typed_data';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/features/quotation/domain/models/quotation.dart';
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
+import 'package:flutter_invoice_app/features/client/domain/models/customer_statement.dart';
 import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
 import 'package:flutter_invoice_app/features/proforma/domain/models/proforma.dart';
+import 'generators/customer_statement_excel_generator.dart';
 import 'generators/invoice_excel_generator.dart';
 import 'generators/quotation_excel_generator.dart';
 import 'generators/lpo_excel_generator.dart';
@@ -33,5 +35,12 @@ class ExcelService {
     BusinessProfile? profile,
   }) {
     return ProformaExcelGenerator.generate(proforma, profile: profile);
+  }
+
+  Future<Uint8List?> generateCustomerStatement(
+    CustomerStatement statement, {
+    BusinessProfile? profile,
+  }) {
+    return CustomerStatementExcelGenerator.generate(statement, profile: profile);
   }
 }
