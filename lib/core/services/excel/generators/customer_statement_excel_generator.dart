@@ -104,11 +104,15 @@ class CustomerStatementExcelGenerator {
       TextCellValue(
         'Total Invoiced: ${statement.totalInvoiced.toStringAsFixed(2)} ${statement.currency}',
       ),
+      if (statement.totalCredited > 0)
+        TextCellValue(
+          'Total Credited: ${statement.totalCredited.toStringAsFixed(2)} ${statement.currency}',
+        ),
       TextCellValue(
         'Total Paid: ${statement.totalPaid.toStringAsFixed(2)} ${statement.currency}',
       ),
       TextCellValue(
-        'Balance Due: ${statement.totalBalanceDue.toStringAsFixed(2)} ${statement.currency}',
+        '${statement.balanceLabel}: ${statement.balanceAmount.toStringAsFixed(2)} ${statement.currency}',
       ),
     ]);
     sheet.appendRow([TextCellValue('')]);
@@ -143,7 +147,7 @@ class CustomerStatementExcelGenerator {
         TextCellValue(
           item.dueDate != null ? dateFormat.format(item.dueDate!) : '-',
         ),
-        TextCellValue(item.status.name.toUpperCase()),
+        TextCellValue(item.statusLabel),
         DoubleCellValue(item.amount),
         DoubleCellValue(item.paidAmount),
         DoubleCellValue(item.balance),
@@ -157,7 +161,7 @@ class CustomerStatementExcelGenerator {
       TextCellValue(''),
       TextCellValue(''),
       TextCellValue(''),
-      DoubleCellValue(statement.totalInvoiced),
+      DoubleCellValue(statement.netInvoiced),
       DoubleCellValue(statement.totalPaid),
       DoubleCellValue(statement.totalBalanceDue),
       DoubleCellValue(statement.totalBalanceDue),

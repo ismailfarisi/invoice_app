@@ -12,6 +12,7 @@ import 'package:flutter_invoice_app/features/dashboard/widgets/dashboard_overvie
 import 'package:flutter_invoice_app/features/dashboard/widgets/mobile_menu.dart';
 import 'package:flutter_invoice_app/features/invoice/presentation/screens/delivery_note_list_screen.dart';
 import 'package:flutter_invoice_app/features/invoice/presentation/screens/letterhead_input_screen.dart';
+import 'package:flutter_invoice_app/features/credit_note/presentation/screens/credit_note_list_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -27,8 +28,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize exactly as many keys as there are total pages (defined by _pages.length)
-    _navigatorKeys = List.generate(10, (index) => GlobalKey<NavigatorState>());
+    _navigatorKeys = List.generate(
+      _pages.length,
+      (index) => GlobalKey<NavigatorState>(),
+    );
   }
 
   List<Widget> get _pages => [
@@ -40,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     const LpoListScreen(),
     const ProformaListScreen(),
     const DeliveryNoteListScreen(),
+    const CreditNoteListScreen(),
     const LetterHeadInputScreen(),
     const SettingsScreen(),
   ];
@@ -250,19 +254,26 @@ class _Sidebar extends StatelessWidget {
                       onTap: () => onItemSelected(7),
                     ),
                     _SidebarItem(
+                      icon: Icons.assignment_return_outlined,
+                      selectedIcon: Icons.assignment_return,
+                      label: 'Credit',
+                      isSelected: selectedIndex == 8,
+                      onTap: () => onItemSelected(8),
+                    ),
+                    _SidebarItem(
                       icon: Icons.description_outlined,
                       selectedIcon: Icons.description,
                       label: 'Letterhead',
-                      isSelected: selectedIndex == 8,
-                      onTap: () => onItemSelected(8),
+                      isSelected: selectedIndex == 9,
+                      onTap: () => onItemSelected(9),
                     ),
                     const Spacer(),
                     _SidebarItem(
                       icon: Icons.settings_outlined,
                       selectedIcon: Icons.settings,
                       label: 'Settings',
-                      isSelected: selectedIndex == 9,
-                      onTap: () => onItemSelected(9),
+                      isSelected: selectedIndex == 10,
+                      onTap: () => onItemSelected(10),
                     ),
                     const SizedBox(height: 24),
                   ],

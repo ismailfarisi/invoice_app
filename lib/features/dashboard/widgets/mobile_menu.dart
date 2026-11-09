@@ -8,6 +8,7 @@ import 'package:flutter_invoice_app/features/settings/presentation/screens/setti
 
 import 'package:flutter_invoice_app/features/invoice/presentation/screens/delivery_note_list_screen.dart';
 import 'package:flutter_invoice_app/features/invoice/presentation/screens/letterhead_input_screen.dart';
+import 'package:flutter_invoice_app/features/credit_note/presentation/screens/credit_note_list_screen.dart';
 
 class MobileMenu extends ConsumerWidget {
   const MobileMenu({super.key});
@@ -77,6 +78,16 @@ class MobileMenu extends ConsumerWidget {
                 MaterialPageRoute(
                   builder: (_) => const DeliveryNoteListScreen(),
                 ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _MenuTile(
+              icon: Icons.assignment_return_outlined,
+              title: 'Credit Notes',
+              subtitle: 'Credit cancelled or returned invoices',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreditNoteListScreen()),
               ),
             ),
             const SizedBox(height: 16),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_invoice_app/features/client/presentation/screens/client_list_screen.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/models/credit_note.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
 
@@ -36,6 +37,10 @@ void main() {
     clientBox = await Hive.openBox<Client>('clients');
     invoiceBox = await Hive.openBox<Invoice>('invoices');
     settingsBox = await Hive.openBox<BusinessProfile>('settings');
+    if (!Hive.isAdapterRegistered(CreditNoteAdapter().typeId)) {
+      Hive.registerAdapter(CreditNoteAdapter());
+    }
+    await Hive.openBox<CreditNote>('credit_notes');
   });
 
   tearDownAll(() async {

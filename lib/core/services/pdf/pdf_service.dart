@@ -12,8 +12,17 @@ import 'generators/proforma_pdf_generator.dart';
 import 'generators/letterhead_pdf_generator.dart';
 import 'generators/delivery_note_pdf_generator.dart';
 import 'generators/customer_statement_pdf_generator.dart';
+import 'generators/credit_note_pdf_generator.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/models/credit_note.dart';
 
 class PdfService {
+  Future<Uint8List> generateCreditNote(
+    CreditNote note, {
+    BusinessProfile? profile,
+  }) {
+    return CreditNotePdfGenerator.generate(note, profile: profile);
+  }
+
   Future<Uint8List> generateInvoice(
     Invoice invoice, {
     BusinessProfile? profile,

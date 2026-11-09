@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/models/credit_note.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/features/client/domain/models/customer_statement.dart';
 
@@ -196,6 +197,141 @@ void main() {
 
       expect(statement.items.length, 1);
       expect(statement.totalInvoiced, 1500.0);
+    });
+  });
+
+  group('CustomerStatement.fromInvoices with credit notes', () {
+    CreditNote createNote({
+      String number = 'CN-0001',
+      String invoiceId = 'inv-1',
+      Client? client,
+      DateTime? date,
+      double total = 400.0,
+      bool isVoided = false,
+    }) {
+      return CreditNote(
+        id: number,
+        creditNoteNumber: number,
+        date: date ?? DateTime(2026, 2, 1),
+        invoiceId: invoiceId,
+        invoiceNumber: 'INV-001',
+        client: client ?? testClient,
+        items: [],
+        subtotal: total,
+        vatRate: 0,
+        taxAmount: 0,
+        total: total,
+        reason: 'Order cancelled',
+        isVoided: isVoided,
+      );
+    }
+
+    Invoice sentInvoice({InvoiceStatus status = InvoiceStatus.sent}) {
+      return createInvoice(
+        id: 'inv-1',
+        number: 'INV-001',
+        client: testClient,
+        date: DateTime(2026, 1, 10),
+        total: 1000.0,
+        status: status,
+      );
+    }
+
+    test('a partial credit reduces what an unpaid invoice still owes', () {
+      final statement = CustomerStatement.fromInvoices(
+        client: testClient,
+        allInvoices: [sentInvoice()],
+        creditNotes: [createNote()],
+      );
+
+      expect(statement.items.length, 2);
+      expect(statement.items[1].isCreditNote, isTrue);
+      expect(statement.items[1].invoiceNumber, 'CN-0001');
+      expect(statement.items[1].statusLabel, 'CREDIT NOTE');
+      expect(statement.items[1].amount, -400.0);
+      expect(statement.items[1].balance, -400.0);
+      expect(statement.items[1].runningBalance, 600.0);
+      expect(statement.totalInvoiced, 1000.0);
+      expect(statement.totalCredited, 400.0);
+      expect(statement.netInvoiced, 600.0);
+      expect(statement.totalBalanceDue, 600.0);
+      expect(statement.balanceLabel, 'Balance Due');
+    });
+
+    test('a full credit on a paid invoice leaves a credit balance', () {
+      final statement = CustomerStatement.fromInvoices(
+        client: testClient,
+        allInvoices: [sentInvoice(status: InvoiceStatus.paid)],
+        creditNotes: [createNote(total: 1000.0)],
+      );
+
+      expect(statement.totalBalanceDue, -1000.0);
+      expect(statement.items.last.runningBalance, -1000.0);
+      expect(statement.hasCreditBalance, isTrue);
+      expect(statement.balanceLabel, 'Credit Balance');
+      expect(statement.balanceAmount, 1000.0);
+    });
+
+    test('a full credit on an unpaid invoice settles to exactly zero', () {
+      final statement = CustomerStatement.fromInvoices(
+        client: testClient,
+        allInvoices: [sentInvoice()],
+        creditNotes: [createNote(total: 1000.0 + 1e-10)],
+      );
+
+      expect(statement.totalBalanceDue, 0.0);
+      expect(statement.items.last.runningBalance, 0.0);
+      expect(statement.balanceLabel, 'Balance Due');
+    });
+
+    test('a credit dated the same day follows its invoice', () {
+      final statement = CustomerStatement.fromInvoices(
+        client: testClient,
+        allInvoices: [sentInvoice()],
+        creditNotes: [createNote(date: DateTime(2026, 1, 10))],
+      );
+
+      expect(statement.items[0].isCreditNote, isFalse);
+      expect(statement.items[1].isCreditNote, isTrue);
+    });
+
+    test('ignores voided notes and notes for other customers', () {
+      final statement = CustomerStatement.fromInvoices(
+        client: testClient,
+        allInvoices: [sentInvoice()],
+        creditNotes: [
+          createNote(isVoided: true),
+          createNote(number: 'CN-0002', client: otherClient),
+        ],
+      );
+
+      expect(statement.items.length, 1);
+      expect(statement.totalCredited, 0.0);
+      expect(statement.totalBalanceDue, 1000.0);
+    });
+
+    test('does not subtract a credit against a cancelled invoice twice', () {
+      final statement = CustomerStatement.fromInvoices(
+        client: testClient,
+        allInvoices: [sentInvoice(status: InvoiceStatus.cancelled)],
+        creditNotes: [createNote(total: 1000.0)],
+      );
+
+      expect(statement.items, isEmpty);
+      expect(statement.totalBalanceDue, 0.0);
+    });
+
+    test('applies the period to the credit note date', () {
+      final statement = CustomerStatement.fromInvoices(
+        client: testClient,
+        allInvoices: [sentInvoice()],
+        creditNotes: [createNote(date: DateTime(2026, 3, 15))],
+        fromDate: DateTime(2026, 1, 1),
+        toDate: DateTime(2026, 1, 31),
+      );
+
+      expect(statement.items.length, 1);
+      expect(statement.totalCredited, 0.0);
     });
   });
 }

@@ -8,6 +8,7 @@ class GenericPdfPreviewScreen extends ConsumerWidget {
   final VoidCallback? onExportExcel;
 
   final String? pdfFileName;
+  final List<Widget>? actions;
 
   const GenericPdfPreviewScreen({
     super.key,
@@ -15,6 +16,7 @@ class GenericPdfPreviewScreen extends ConsumerWidget {
     required this.buildEvent,
     this.onExportExcel,
     this.pdfFileName,
+    this.actions,
   });
 
   @override
@@ -29,6 +31,7 @@ class GenericPdfPreviewScreen extends ConsumerWidget {
               tooltip: 'Export to Excel',
               onPressed: onExportExcel,
             ),
+          ...?actions,
         ],
       ),
       body: SafeArea(

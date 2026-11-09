@@ -11,6 +11,7 @@ import 'package:flutter_invoice_app/features/product/domain/models/product.dart'
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
 import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
 import 'package:flutter_invoice_app/features/proforma/domain/models/proforma.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/models/credit_note.dart';
 import 'package:flutter_invoice_app/core/services/sync_service.dart';
 
 void main() async {
@@ -34,6 +35,7 @@ void main() async {
   Hive.registerAdapter(LpoStatusAdapter());
   Hive.registerAdapter(ProformaInvoiceAdapter());
   Hive.registerAdapter(ProformaStatusAdapter());
+  Hive.registerAdapter(CreditNoteAdapter());
 
   // Open Boxes
   await Hive.openBox<Invoice>('invoices');
@@ -43,6 +45,7 @@ void main() async {
   await Hive.openBox<BusinessProfile>('settings');
   await Hive.openBox<Lpo>('lpos');
   await Hive.openBox<ProformaInvoice>('proformas');
+  await Hive.openBox<CreditNote>('credit_notes');
 
   runApp(const ProviderScope(child: MyApp()));
 }

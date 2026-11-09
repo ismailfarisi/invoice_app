@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_invoice_app/core/services/google_sheets_service.dart';
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
+import 'package:flutter_invoice_app/features/credit_note/data/credit_note_repository.dart';
 import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dart';
 import 'package:flutter_invoice_app/features/client/data/client_repository.dart';
 import 'package:flutter_invoice_app/features/product/data/product_repository.dart';
@@ -40,6 +41,10 @@ class SyncService {
         .addListener(_scheduleSync);
     _ref
         .read(businessProfileRepositoryProvider)
+        .listenable
+        .addListener(_scheduleSync);
+    _ref
+        .read(creditNoteRepositoryProvider)
         .listenable
         .addListener(_scheduleSync);
 
@@ -109,6 +114,7 @@ class SyncService {
         _syncLpos(spreadsheetId),
         _syncProformas(spreadsheetId),
         _syncQuotations(spreadsheetId),
+        _syncCreditNotes(spreadsheetId),
       ]);
     } catch (e) {
       _lastError = 'Sync failed: $e';
@@ -155,6 +161,47 @@ class SyncService {
         .toList();
 
     await _googleSheetsService.updateData(spreadsheetId, 'Invoices', data);
+  }
+
+  Future<void> _syncCreditNotes(String spreadsheetId) async {
+    final notes = _ref.read(creditNoteRepositoryProvider).getAll();
+    final headers = [
+      'ID',
+      'Credit Note Number',
+      'Date',
+      'Invoice Number',
+      'Client Name',
+      'Subtotal',
+      'Tax',
+      'Total',
+      'Reason',
+      'Status',
+    ];
+
+    await _googleSheetsService.setupSheet(
+      spreadsheetId,
+      'Credit Notes',
+      headers,
+    );
+
+    final data = notes
+        .map(
+          (n) => [
+            n.id,
+            n.creditNoteNumber,
+            DateFormat('yyyy-MM-dd').format(n.date),
+            n.invoiceNumber,
+            n.client.name,
+            n.subtotal,
+            n.taxAmount,
+            n.total,
+            n.reason,
+            n.isVoided ? 'void' : 'issued',
+          ],
+        )
+        .toList();
+
+    await _googleSheetsService.updateData(spreadsheetId, 'Credit Notes', data);
   }
 
   Future<void> _syncClients(String spreadsheetId) async {

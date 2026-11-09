@@ -8,6 +8,8 @@ import 'package:flutter_invoice_app/features/client/presentation/screens/client_
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
 
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/credit_note_rules.dart';
+import 'package:flutter_invoice_app/features/credit_note/presentation/screens/credit_note_form_screen.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_invoice_app/core/presentation/widgets/item_card.dart';
 import 'package:flutter_invoice_app/core/presentation/widgets/form/form_section.dart';
@@ -183,6 +185,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
+          if (widget.invoice != null &&
+              CreditNoteRules.canCredit(widget.invoice!))
+            IconButton(
+              icon: const Icon(Icons.assignment_return_outlined),
+              tooltip: 'Create Credit Note',
+              onPressed: () =>
+                  openCreditNoteForm(context, ref, widget.invoice!),
+            ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf_outlined),
             onPressed: () async {

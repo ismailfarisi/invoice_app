@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/models/credit_note.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
 import 'package:flutter_invoice_app/features/product/domain/models/product.dart';
@@ -20,6 +21,7 @@ class BackupService {
   static const String _settingsBox = 'settings';
   static const String _lpoBox = 'lpos';
   static const String _proformaBox = 'proformas';
+  static const String _creditNoteBox = 'credit_notes';
 
   Future<void> exportData() async {
     try {
@@ -44,6 +46,9 @@ class BackupService {
       final proformas = Hive.box<ProformaInvoice>(
         _proformaBox,
       ).values.map((e) => e.toJson()).toList();
+      final creditNotes = Hive.box<CreditNote>(
+        _creditNoteBox,
+      ).values.map((e) => e.toJson()).toList();
 
       final backupData = {
         'version': 1,
@@ -55,6 +60,7 @@ class BackupService {
         'settings': settings,
         'lpos': lpos,
         'proformas': proformas,
+        'credit_notes': creditNotes,
       };
 
       final jsonString = jsonEncode(backupData);
@@ -90,6 +96,7 @@ class BackupService {
         await Hive.box<BusinessProfile>(_settingsBox).clear();
         await Hive.box<Lpo>(_lpoBox).clear();
         await Hive.box<ProformaInvoice>(_proformaBox).clear();
+        await Hive.box<CreditNote>(_creditNoteBox).clear();
 
         // Restore data
         if (data['invoices'] != null) {
@@ -140,6 +147,13 @@ class BackupService {
           for (var item in data['proformas']) {
             final proforma = ProformaInvoice.fromJson(item);
             await box.put(proforma.id, proforma);
+          }
+        }
+        if (data['credit_notes'] != null) {
+          final box = Hive.box<CreditNote>(_creditNoteBox);
+          for (var item in data['credit_notes']) {
+            final note = CreditNote.fromJson(item);
+            await box.put(note.id, note);
           }
         }
       }

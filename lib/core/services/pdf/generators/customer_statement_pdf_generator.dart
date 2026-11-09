@@ -147,7 +147,7 @@ class CustomerStatementPdfGenerator {
                 ),
                 PdfCommonWidgets.buildBoxRow('Period', periodText),
                 PdfCommonWidgets.buildBoxRow(
-                  'Invoices Count',
+                  'Transactions',
                   statement.items.length.toString(),
                 ),
                 PdfCommonWidgets.buildBoxRow('Currency', statement.currency),
@@ -172,6 +172,18 @@ class CustomerStatementPdfGenerator {
           PdfColors.blue800,
         ),
         pw.SizedBox(width: 10),
+        if (statement.totalCredited > 0) ...[
+          _buildMetricBox(
+            'TOTAL CREDITED',
+            CurrencyFormatter.format(
+              statement.totalCredited,
+              currency: statement.currency,
+            ),
+            PdfColors.purple50,
+            PdfColors.purple800,
+          ),
+          pw.SizedBox(width: 10),
+        ],
         _buildMetricBox(
           'TOTAL PAID',
           CurrencyFormatter.format(
@@ -183,9 +195,9 @@ class CustomerStatementPdfGenerator {
         ),
         pw.SizedBox(width: 10),
         _buildMetricBox(
-          'BALANCE DUE',
+          statement.balanceLabel.toUpperCase(),
           CurrencyFormatter.format(
-            statement.totalBalanceDue,
+            statement.balanceAmount,
             currency: statement.currency,
           ),
           PdfColors.orange50,
@@ -315,7 +327,7 @@ class CustomerStatementPdfGenerator {
               _tableCell(
                 item.dueDate != null ? dateFormat.format(item.dueDate!) : '-',
               ),
-              _tableCell(item.status.name.toUpperCase()),
+              _tableCell(item.statusLabel),
               _tableCell(
                 CurrencyFormatter.format(
                   item.amount,
@@ -358,7 +370,7 @@ class CustomerStatementPdfGenerator {
             _tableCell(''),
             _tableCell(
               CurrencyFormatter.format(
-                statement.totalInvoiced,
+                statement.netInvoiced,
                 currency: statement.currency,
               ),
               align: pw.TextAlign.right,

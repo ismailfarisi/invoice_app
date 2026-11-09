@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_invoice_app/core/services/supabase_service.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/models/credit_note.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/features/quotation/domain/models/quotation.dart';
 import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
@@ -68,13 +69,73 @@ class SyncRepository {
 
       // 3. Update Last Sync Time
       await box.put(lastSyncKey, DateTime.now().toIso8601String());
+
+      stats.add(await _syncCreditNotes(user.id, box));
     } catch (e) {
       stats.error = e.toString();
     }
     return stats;
   }
 
+  /// Runs after the main sync, with its own checkpoint, so a Supabase project
+  /// without the credit_notes table still syncs everything else.
+  Future<SyncStats> _syncCreditNotes(String userId, Box meta) async {
+    final stats = SyncStats();
+    final checkpointKey = 'last_sync_credit_notes_$userId';
+    final startedAt = DateTime.now();
+    final box = Hive.box<CreditNote>('credit_notes');
+
+    try {
+      for (final item in box.values.where((n) => !n.isSynced).toList()) {
+        final payload = {
+          ...item.toJson(),
+          'user_id': userId,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }..remove('isSynced');
+        await _supabase.from('credit_notes').upsert(payload);
+        await box.put(
+          item.id,
+          item.copyWith(
+            isSynced: true,
+            updatedAt: DateTime.now(),
+            userId: userId,
+          ),
+        );
+        stats.pushed++;
+      }
+
+      final checkpoint = meta.get(checkpointKey);
+      final lastSync = checkpoint != null
+          ? DateTime.parse(checkpoint).subtract(const Duration(minutes: 1))
+          : DateTime.fromMillisecondsSinceEpoch(0);
+      final response = await _supabase
+          .from('credit_notes')
+          .select()
+          .eq('user_id', userId)
+          .gt('updatedAt', lastSync.toIso8601String());
+
+      for (final data in response) {
+        final note = CreditNote.fromJson(data);
+        await box.put(note.id, note.copyWith(isSynced: true, userId: userId));
+        stats.pulled++;
+      }
+
+      await meta.put(checkpointKey, startedAt.toIso8601String());
+    } catch (e) {
+      stats.error = 'Credit notes did not sync: $e';
+    }
+    return stats;
+  }
+
   Future<void> resetSyncStatus() async {
+    final creditNotes = Hive.box<CreditNote>('credit_notes');
+    for (final key in creditNotes.keys) {
+      final item = creditNotes.get(key);
+      if (item != null) {
+        await creditNotes.put(key, item.copyWith(isSynced: false));
+      }
+    }
+
     final b1 = Hive.box<Invoice>('invoices');
     final b2 = Hive.box<Quotation>('quotations');
     final b3 = Hive.box<Client>('clients');

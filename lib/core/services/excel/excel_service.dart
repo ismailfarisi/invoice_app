@@ -10,8 +10,17 @@ import 'generators/invoice_excel_generator.dart';
 import 'generators/quotation_excel_generator.dart';
 import 'generators/lpo_excel_generator.dart';
 import 'generators/proforma_excel_generator.dart';
+import 'generators/credit_note_excel_generator.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/models/credit_note.dart';
 
 class ExcelService {
+  Future<Uint8List?> generateCreditNote(
+    CreditNote note, {
+    BusinessProfile? profile,
+  }) {
+    return CreditNoteExcelGenerator.generate(note, profile: profile);
+  }
+
   Future<Uint8List?> generateInvoice(
     Invoice invoice, {
     BusinessProfile? profile,

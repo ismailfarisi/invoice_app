@@ -125,6 +125,39 @@ USING (auth.uid() = user_id);
 -- 11. Proforma Items
 ALTER TABLE IF EXISTS public.proforma_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage their own proforma items" ON public.proforma_items;
-CREATE POLICY "Users can manage their own proforma items" 
-ON public.proforma_items FOR ALL 
+CREATE POLICY "Users can manage their own proforma items"
+ON public.proforma_items FOR ALL
+USING (auth.uid() = user_id);
+
+-- 12. Credit Notes
+-- client and items are stored as issued, so a later edit to the customer
+-- record cannot change a tax document that has already gone out.
+CREATE TABLE IF NOT EXISTS public.credit_notes (
+  id TEXT PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  "creditNoteNumber" TEXT NOT NULL,
+  date TIMESTAMPTZ NOT NULL,
+  "invoiceId" TEXT NOT NULL,
+  "invoiceNumber" TEXT NOT NULL,
+  "invoiceDate" TIMESTAMPTZ,
+  client JSONB NOT NULL,
+  client_id TEXT,
+  items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  subtotal DOUBLE PRECISION NOT NULL,
+  "vatRate" DOUBLE PRECISION NOT NULL,
+  "taxAmount" DOUBLE PRECISION NOT NULL,
+  total DOUBLE PRECISION NOT NULL,
+  reason TEXT NOT NULL,
+  "isVatApplicable" BOOLEAN DEFAULT TRUE,
+  currency TEXT DEFAULT 'AED',
+  "placeOfSupply" TEXT,
+  "salesPerson" TEXT,
+  "isVoided" BOOLEAN DEFAULT FALSE,
+  "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.credit_notes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage their own credit notes" ON public.credit_notes;
+CREATE POLICY "Users can manage their own credit notes"
+ON public.credit_notes FOR ALL
 USING (auth.uid() = user_id);

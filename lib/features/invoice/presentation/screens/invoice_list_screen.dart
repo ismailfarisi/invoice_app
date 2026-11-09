@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_invoice_app/features/credit_note/data/credit_note_repository.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/credit_note_rules.dart';
 import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
@@ -12,6 +14,7 @@ class InvoiceListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(invoiceRepositoryProvider);
+    final creditRepo = ref.watch(creditNoteRepositoryProvider);
 
     return DefaultTabController(
       length: 3,
@@ -30,20 +33,30 @@ class InvoiceListScreen extends ConsumerWidget {
           valueListenable: repo.listenable,
           builder: (context, box, _) {
             final invoices = box.values.toList();
-            return TabBarView(
-              children: [
-                _InvoiceList(invoices: invoices),
-                _InvoiceList(
-                  invoices: invoices
-                      .where((i) => i.status == InvoiceStatus.paid)
-                      .toList(),
-                ),
-                _InvoiceList(
-                  invoices: invoices
-                      .where((i) => i.status != InvoiceStatus.paid)
-                      .toList(),
-                ),
-              ],
+            return ValueListenableBuilder(
+              valueListenable: creditRepo.listenable,
+              builder: (context, creditBox, _) {
+                final credited = CreditNoteRules.creditedByInvoice(
+                  creditBox.values,
+                );
+                return TabBarView(
+                  children: [
+                    _InvoiceList(invoices: invoices, credited: credited),
+                    _InvoiceList(
+                      invoices: invoices
+                          .where((i) => i.status == InvoiceStatus.paid)
+                          .toList(),
+                      credited: credited,
+                    ),
+                    _InvoiceList(
+                      invoices: invoices
+                          .where((i) => i.status != InvoiceStatus.paid)
+                          .toList(),
+                      credited: credited,
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),
@@ -54,7 +67,8 @@ class InvoiceListScreen extends ConsumerWidget {
 
 class _InvoiceList extends StatelessWidget {
   final List<Invoice> invoices;
-  const _InvoiceList({required this.invoices});
+  final Map<String, double> credited;
+  const _InvoiceList({required this.invoices, required this.credited});
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +98,10 @@ class _InvoiceList extends StatelessWidget {
         final invoice = invoices[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: _InvoiceCard(invoice: invoice),
+          child: _InvoiceCard(
+            invoice: invoice,
+            creditedAmount: credited[invoice.id] ?? 0,
+          ),
         );
       },
     );
@@ -93,8 +110,9 @@ class _InvoiceList extends StatelessWidget {
 
 class _InvoiceCard extends StatelessWidget {
   final Invoice invoice;
+  final double creditedAmount;
 
-  const _InvoiceCard({required this.invoice});
+  const _InvoiceCard({required this.invoice, required this.creditedAmount});
 
   @override
   Widget build(BuildContext context) {
@@ -161,6 +179,17 @@ class _InvoiceCard extends StatelessWidget {
                       fontSize: 13,
                     ),
                   ),
+                  if (creditedAmount > 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Credited ${CurrencyFormatter.format(creditedAmount, symbol: invoice.currency ?? 'AED')}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.tertiary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

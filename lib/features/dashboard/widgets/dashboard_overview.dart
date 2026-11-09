@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_invoice_app/features/credit_note/data/credit_note_repository.dart';
+import 'package:flutter_invoice_app/features/credit_note/domain/credit_note_rules.dart';
 import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
@@ -21,22 +23,33 @@ class DashboardOverview extends ConsumerWidget {
         .getAllQuotations();
     final proformas = ref.watch(proformaRepositoryProvider).getAllProformas();
 
+    final credits = CreditNoteRules.totals(
+      invoices,
+      ref.watch(creditNoteRepositoryProvider).getAll(),
+    );
+
     // Financial Metrics
-    final totalRevenue = invoices
-        .where((i) => i.status == InvoiceStatus.paid)
-        .fold(0.0, (sum, i) => sum + i.total);
+    final totalRevenue =
+        invoices
+            .where((i) => i.status == InvoiceStatus.paid)
+            .fold(0.0, (sum, i) => sum + i.total) -
+        credits.onPaidInvoices;
 
-    final pendingAmount = invoices
-        .where(
-          (i) =>
-              i.status != InvoiceStatus.paid &&
-              i.status != InvoiceStatus.cancelled,
-        )
-        .fold(0.0, (sum, i) => sum + i.total);
+    final pendingAmount =
+        invoices
+            .where(
+              (i) =>
+                  i.status != InvoiceStatus.paid &&
+                  i.status != InvoiceStatus.cancelled,
+            )
+            .fold(0.0, (sum, i) => sum + i.total) -
+        credits.onUnpaidInvoices;
 
-    final totalBilled = invoices
-        .where((i) => i.status != InvoiceStatus.cancelled)
-        .fold(0.0, (sum, i) => sum + i.total);
+    final totalBilled =
+        invoices
+            .where((i) => i.status != InvoiceStatus.cancelled)
+            .fold(0.0, (sum, i) => sum + i.total) -
+        credits.all;
 
     final collectionRate = totalBilled > 0
         ? (totalRevenue / totalBilled) * 100

@@ -7,6 +7,7 @@ import 'package:flutter_invoice_app/core/services/pdf/pdf_service.dart';
 import 'package:flutter_invoice_app/core/utils/file_utils.dart';
 import 'package:flutter_invoice_app/features/client/domain/models/customer_statement.dart';
 import 'package:flutter_invoice_app/features/client/presentation/screens/client_form_screen.dart';
+import 'package:flutter_invoice_app/features/credit_note/data/credit_note_repository.dart';
 import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/features/invoice/presentation/screens/generic_pdf_preview_screen.dart';
@@ -231,6 +232,7 @@ void _generateAndNavigateToStatement(
   final statement = CustomerStatement.fromInvoices(
     client: client,
     allInvoices: allInvoices,
+    creditNotes: ref.read(creditNoteRepositoryProvider).getAll(),
     fromDate: fromDate,
     toDate: toDate,
   );
