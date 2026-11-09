@@ -39,6 +39,7 @@ class CreditNotePreviewScreen extends ConsumerWidget {
     );
     if (confirmed != true) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(creditNoteRepositoryProvider).voidNote(note);
     } catch (e) {
@@ -52,6 +53,9 @@ class CreditNotePreviewScreen extends ConsumerWidget {
       }
       return;
     }
+    messenger.showSnackBar(
+      SnackBar(content: Text('${note.creditNoteNumber} has been voided.')),
+    );
     if (context.mounted) Navigator.of(context).pop();
   }
 
@@ -64,7 +68,9 @@ class CreditNotePreviewScreen extends ConsumerWidget {
     );
 
     return GenericPdfPreviewScreen(
-      title: 'Credit Note ${note.creditNoteNumber}',
+      title: note.isVoided
+          ? 'Credit Note ${note.creditNoteNumber} (Void)'
+          : 'Credit Note ${note.creditNoteNumber}',
       pdfFileName: 'CreditNote_$safeNumber.pdf',
       buildEvent: (format) =>
           PdfService().generateCreditNote(note, profile: profile),

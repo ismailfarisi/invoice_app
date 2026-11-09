@@ -21,9 +21,20 @@ class LpoPdfPreviewScreen extends ConsumerWidget {
       pdfFileName: 'LPO_${lpo.lpoNumber}.pdf',
       buildEvent: (format) => PdfService().generateLpo(lpo, profile: profile),
       onExportExcel: () async {
-        final bytes = await ExcelService().generateLpo(lpo, profile: profile);
-        if (bytes != null) {
-          await FileUtils.shareFile(bytes, 'LPO_${lpo.lpoNumber}.xlsx');
+        try {
+          final bytes = await ExcelService().generateLpo(lpo, profile: profile);
+          if (bytes != null) {
+            await FileUtils.shareFile(bytes, 'LPO_${lpo.lpoNumber}.xlsx');
+          }
+        } catch (e) {
+          debugPrint('Failed to export LPO to Excel: $e');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not export to Excel. Please try again.'),
+              ),
+            );
+          }
         }
       },
     );

@@ -53,17 +53,31 @@ class _LetterHeadInputScreenState extends ConsumerState<LetterHeadInputScreen> {
                   maxLines: null,
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
+                  textCapitalization: TextCapitalization.sentences,
+                  keyboardType: TextInputType.multiline,
                   decoration: const InputDecoration(
-                    hintText: 'Enter your letter content here...',
-                    border: OutlineInputBorder(),
-                    filled: true,
+                    labelText: 'Letter content',
+                    alignLabelWithHint: true,
+                    hintText:
+                        'Type the letter to print under your business header',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Leave empty to get a blank page with just your letter head.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _generatePdf,
                   icon: const Icon(Icons.picture_as_pdf),

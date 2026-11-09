@@ -22,14 +22,27 @@ class QuotationPdfPreviewScreen extends ConsumerWidget {
       buildEvent: (format) =>
           PdfService().generateQuotation(quotation, profile: profile),
       onExportExcel: () async {
-        final bytes = await ExcelService().generateQuotation(
-          quotation,
-          profile: profile,
-        );
-        if (bytes != null) {
-          await FileUtils.shareFile(
-            bytes,
-            'Quotation_${quotation.quotationNumber}.xlsx',
+        final messenger = ScaffoldMessenger.of(context);
+        try {
+          final bytes = await ExcelService().generateQuotation(
+            quotation,
+            profile: profile,
+          );
+          if (bytes != null) {
+            await FileUtils.shareFile(
+              bytes,
+              'Quotation_${quotation.quotationNumber}.xlsx',
+            );
+          } else {
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Could not create the Excel file.')),
+            );
+          }
+        } catch (e) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Excel export failed. Please try again.'),
+            ),
           );
         }
       },

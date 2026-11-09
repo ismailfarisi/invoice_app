@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-09T00:00:00Z",
+  "title": "Design System: Flutter Invoice App",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Gulf Teal", "canonical": "#00696D", "tonalRamp": ["#002021", "#003739", "#004F53", "#00696D", "#479DA2", "#80D4D9", "#9CF0F5", "#BFFCFF"] },
+      "primary-seed": { "role": "primary", "displayName": "Gulf Teal Seed", "canonical": "#006064", "tonalRamp": ["#002021", "#003739", "#004F53", "#00696D", "#479DA2", "#80D4D9", "#9CF0F5", "#BFFCFF"] },
+      "on-primary": { "role": "primary", "displayName": "On Gulf Teal", "canonical": "#FFFFFF", "tonalRamp": ["#161D1D", "#2B3232", "#414848", "#596060", "#8B9292", "#C1C8C8", "#DDE4E4", "#ECF2F2"] },
+      "tertiary": { "role": "tertiary", "displayName": "Slate Blue", "canonical": "#4E5F7D", "tonalRamp": ["#081C36", "#1F314C", "#364764", "#4E5F7D", "#8091B1", "#B5C7E9", "#D5E3FF", "#ECF1FF"] },
+      "error": { "role": "error", "displayName": "Error Red", "canonical": "#BA1A1A", "tonalRamp": ["#410002", "#690005", "#93000A", "#BA1A1A", "#FF5449", "#FFB4AB", "#FFDAD6", "#FFEDEA"] },
+      "surface": { "role": "neutral", "displayName": "Ledger White", "canonical": "#FFFFFF", "tonalRamp": ["#161D1D", "#2B3232", "#414848", "#596060", "#8B9292", "#C1C8C8", "#DDE4E4", "#ECF2F2"] },
+      "page-wash": { "role": "neutral", "displayName": "Page Wash", "canonical": "#F5F5F5", "tonalRamp": ["#212121", "#424242", "#616161", "#757575", "#9E9E9E", "#BDBDBD", "#E0E0E0", "#F5F5F5"] },
+      "field-fill": { "role": "neutral", "displayName": "Field Fill", "canonical": "#FAFAFA", "tonalRamp": ["#212121", "#424242", "#616161", "#757575", "#9E9E9E", "#BDBDBD", "#E0E0E0", "#FAFAFA"] },
+      "ink": { "role": "neutral", "displayName": "Office Ink", "canonical": "#161D1D", "tonalRamp": ["#161D1D", "#2B3232", "#414848", "#596060", "#8B9292", "#C1C8C8", "#DDE4E4", "#ECF2F2"] },
+      "ink-muted": { "role": "neutral", "displayName": "Muted Ink", "canonical": "#3F4949", "tonalRamp": ["#141D1E", "#293233", "#3F4949", "#566061", "#889393", "#BEC8C9", "#DAE4E5", "#E9F3F3"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#BEC8C9", "tonalRamp": ["#141D1E", "#293233", "#3F4949", "#566061", "#889393", "#BEC8C9", "#DAE4E5", "#E9F3F3"] },
+      "status-paid": { "role": "status", "displayName": "Paid Green", "canonical": "#4CAF50", "tonalRamp": ["#1B5E20", "#2E7D32", "#388E3C", "#43A047", "#4CAF50", "#81C784", "#C8E6C9", "#E8F5E9"] },
+      "status-pending": { "role": "status", "displayName": "Pending Amber", "canonical": "#FF9800", "tonalRamp": ["#E65100", "#EF6C00", "#F57C00", "#FB8C00", "#FF9800", "#FFB74D", "#FFE0B2", "#FFF3E0"] },
+      "status-info": { "role": "status", "displayName": "Info Blue", "canonical": "#2196F3", "tonalRamp": ["#0D47A1", "#1565C0", "#1976D2", "#1E88E5", "#2196F3", "#64B5F6", "#BBDEFB", "#E3F2FD"] },
+      "status-danger": { "role": "status", "displayName": "Danger Red", "canonical": "#F44336", "tonalRamp": ["#B71C1C", "#C62828", "#D32F2F", "#E53935", "#F44336", "#E57373", "#FFCDD2", "#FFEBEE"] },
+      "status-accent": { "role": "status", "displayName": "Report Purple", "canonical": "#9C27B0", "tonalRamp": ["#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0", "#BA68C8", "#E1BEE7", "#F3E5F5"] },
+      "primary-dark": { "role": "primary", "displayName": "Pale Gulf Teal", "canonical": "#80D4D9", "tonalRamp": ["#002021", "#003739", "#004F53", "#00696D", "#479DA2", "#80D4D9", "#9CF0F5", "#BFFCFF"] },
+      "surface-dark": { "role": "neutral", "displayName": "Night Surface", "canonical": "#0E1415", "tonalRamp": ["#0E1415", "#2B3232", "#414848", "#596060", "#8B9292", "#C1C8C8", "#DDE4E4", "#ECF2F2"] },
+      "ink-dark": { "role": "neutral", "displayName": "Pale Ink", "canonical": "#DDE4E4", "tonalRamp": ["#161D1D", "#2B3232", "#414848", "#596060", "#8B9292", "#C1C8C8", "#DDE4E4", "#ECF2F2"] }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Dashboard page title and the grand total on a form." },
+      "section-title": { "displayName": "Section Title", "purpose": "Headings inside a screen." },
+      "card-title": { "displayName": "Card Title", "purpose": "The customer name on a list card." },
+      "body": { "displayName": "Body", "purpose": "Form values and general text." },
+      "meta": { "displayName": "Meta", "purpose": "Document number and date lines, in Muted Ink." },
+      "badge": { "displayName": "Badge", "purpose": "Uppercase status labels." },
+      "figure": { "displayName": "Figure", "purpose": "Amounts on list cards." },
+      "figure-total": { "displayName": "Figure Total", "purpose": "The total on a document form, in Gulf Teal." }
+    },
+    "shadows": [
+      { "name": "card-breath", "value": "0 4px 10px rgba(0,0,0,0.02)", "purpose": "List cards only." },
+      { "name": "floating-lift", "value": "0 4px 8px rgba(0,0,0,0.2)", "purpose": "Approximates Material elevation 4 on the floating action button." }
+    ],
+    "motion": [],
+    "breakpoints": [
+      { "name": "two-column", "value": "600px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Filled Action Button",
+      "kind": "button",
+      "refersTo": "button-filled",
+      "description": "The primary action in a form's app bar, such as Save or Issue.",
+      "html": "<button class=\"ds-btn-filled\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z\"/></svg>Issue</button>",
+      "css": ".ds-btn-filled { display: inline-flex; align-items: center; gap: 8px; background: #00696D; color: #FFFFFF; border: none; border-radius: 999px; padding: 10px 24px; font: 500 14px Outfit, sans-serif; cursor: pointer; transition: background 0.15s; } .ds-btn-filled:hover { background: #004F53; } .ds-btn-filled:focus-visible { outline: 2px solid #00696D; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Button",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Low-priority actions such as Add Item or Clear All.",
+      "html": "<button class=\"ds-btn-text\">Clear All</button>",
+      "css": ".ds-btn-text { background: transparent; color: #00696D; border: none; border-radius: 999px; padding: 10px 12px; font: 500 14px Outfit, sans-serif; cursor: pointer; transition: background 0.15s; } .ds-btn-text:hover { background: rgba(0,105,109,0.08); } .ds-btn-text:focus-visible { outline: 2px solid #00696D; outline-offset: 2px; }"
+    },
+    {
+      "name": "Floating Action Button",
+      "kind": "button",
+      "refersTo": "button-fab",
+      "description": "Extended with a bold label; one per screen for the main creation action.",
+      "html": "<button class=\"ds-fab\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z\"/></svg>New Invoice</button>",
+      "css": ".ds-fab { display: inline-flex; align-items: center; gap: 8px; background: #9CF0F5; color: #004F53; border: none; border-radius: 20px; padding: 16px 20px; font: 700 14px Outfit, sans-serif; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; } .ds-fab:hover { box-shadow: 0 6px 12px rgba(0,0,0,0.24); } .ds-fab:focus-visible { outline: 2px solid #00696D; outline-offset: 2px; }"
+    },
+    {
+      "name": "Filled Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Filled and borderless at rest; a teal border appears on focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"Invoice Number\" />",
+      "css": ".ds-input { background: #FAFAFA; color: #161D1D; border: 1.5px solid transparent; border-radius: 16px; padding: 16px 20px; font: 400 16px Outfit, sans-serif; outline: none; width: 260px; } .ds-input:focus-visible { border-color: #006064; }"
+    },
+    {
+      "name": "List Card",
+      "kind": "card",
+      "refersTo": "card-list",
+      "description": "Icon tile, customer over meta line, amount over status badge.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-tile\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"#00696D\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5z\"/></svg></div><div class=\"ds-card-main\"><div class=\"ds-card-title\">Al Noor Trading LLC</div><div class=\"ds-card-meta\">INV-2041 • Oct 14, 2026</div></div><div class=\"ds-card-end\"><div class=\"ds-card-amount\">AED5,071.50</div><span class=\"ds-card-badge\">SENT</span></div></div>",
+      "css": ".ds-card { display: flex; align-items: center; gap: 16px; width: 360px; background: #FFFFFF; border: 1px solid rgba(190,200,201,0.2); border-radius: 24px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); font-family: Outfit, sans-serif; transition: border-color 0.15s; } .ds-card:hover { border-color: rgba(190,200,201,0.6); } .ds-card-tile { display: flex; padding: 12px; border-radius: 16px; background: rgba(0,105,109,0.05); } .ds-card-main { flex: 1; min-width: 0; } .ds-card-title { font-weight: 700; font-size: 17px; color: #161D1D; } .ds-card-meta { font-size: 13px; color: #3F4949; margin-top: 4px; } .ds-card-end { text-align: right; } .ds-card-amount { font-weight: 900; font-size: 18px; color: #161D1D; } .ds-card-badge { display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 8px; background: rgba(255,152,0,0.1); color: #EF6C00; font-weight: 700; font-size: 10px; letter-spacing: 0.5px; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "custom",
+      "refersTo": "status-badge",
+      "description": "Uppercase status in its hue on a 10% tint of itself.",
+      "html": "<span class=\"ds-badge\">PAID</span>",
+      "css": ".ds-badge { display: inline-block; padding: 4px 10px; border-radius: 8px; background: rgba(76,175,80,0.1); color: #1B5E20; font: 700 10px Outfit, sans-serif; letter-spacing: 0.5px; }"
+    },
+    {
+      "name": "Totals Panel",
+      "kind": "custom",
+      "refersTo": "totals-panel",
+      "description": "Closes a document form with label rows and the grand total.",
+      "html": "<div class=\"ds-totals\"><div class=\"ds-totals-row\"><span>Subtotal</span><b>AED4,830.00</b></div><div class=\"ds-totals-row\"><span>VAT (5%)</span><b>AED241.50</b></div><hr class=\"ds-totals-rule\" /><div class=\"ds-totals-total\"><span>Total Amount</span><strong>AED5,071.50</strong></div></div>",
+      "css": ".ds-totals { width: 340px; padding: 24px; border-radius: 24px; background: rgba(0,105,109,0.05); border: 1px solid rgba(0,105,109,0.1); font-family: Outfit, sans-serif; } .ds-totals-row { display: flex; justify-content: space-between; margin-bottom: 8px; color: #3F4949; font-size: 14px; } .ds-totals-row b { color: #161D1D; font-weight: 600; } .ds-totals-rule { border: none; border-top: 1px solid #BEC8C9; margin: 12px 0; } .ds-totals-total { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 18px; color: #161D1D; } .ds-totals-total strong { font-size: 24px; font-weight: 900; color: #00696D; }"
+    },
+    {
+      "name": "Choice Chip",
+      "kind": "chip",
+      "refersTo": "chip-choice",
+      "description": "Single selection, such as statement date ranges.",
+      "html": "<button class=\"ds-chip ds-chip-on\">This Month</button><button class=\"ds-chip\">This Year</button>",
+      "css": ".ds-chip { margin-right: 8px; padding: 6px 16px; border-radius: 8px; border: 1px solid #6F7979; background: transparent; color: #161D1D; font: 500 14px Outfit, sans-serif; cursor: pointer; transition: background 0.15s; } .ds-chip:hover { background: rgba(22,29,29,0.06); } .ds-chip:focus-visible { outline: 2px solid #00696D; outline-offset: 2px; } .ds-chip-on { background: #CCE8E9; border-color: #CCE8E9; }"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "nav-bar",
+      "description": "Phone navigation with four destinations; the selected icon fills.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item\" href=\"#\">Home</a><a class=\"ds-nav-item ds-nav-on\" href=\"#\">Invoices</a><a class=\"ds-nav-item\" href=\"#\">Quotes</a><a class=\"ds-nav-item\" href=\"#\">Menu</a></nav>",
+      "css": ".ds-nav { display: flex; width: 360px; background: #F5F5F5; padding: 12px 8px; font: 500 12px Outfit, sans-serif; } .ds-nav-item { flex: 1; text-align: center; padding: 6px 0; border-radius: 16px; color: #3F4949; text-decoration: none; transition: background 0.15s; } .ds-nav-item:hover { background: rgba(22,29,29,0.06); } .ds-nav-item:focus-visible { outline: 2px solid #00696D; } .ds-nav-on { background: #CCE8E9; color: #161D1D; font-weight: 700; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Pocket Back Office",
+    "overview": "This is a whole office's paperwork, tidy and always in the owner's pocket. The system is calm and tidy: white surfaces on a barely tinted page, one deep teal for anything that acts, and quiet hairlines doing the work that shadows do elsewhere. Nothing competes with the documents and the figures, which are the reason anyone opened the app.\n\nControls are soft and sure-footed. Corners are generously rounded, fields are filled rather than outlined, and touch targets are sized for a thumb on a phone. Density is moderate: a list card holds a customer, a document number and an amount, and each screen stays one clear job.\n\nThe app is built on Material 3 and themed from a single teal seed, with Outfit as the only typeface. It follows the device's light or dark setting.",
+    "keyCharacteristics": [
+      "One teal voice on white, with colour tints reserved for status and meaning.",
+      "Hairline borders and spacing separate surfaces; shadows barely register.",
+      "Soft, large shapes sized for thumbs.",
+      "Money is always the heaviest text on the card.",
+      "Material components, themed rather than replaced."
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "Gulf Teal is the only colour that signals action. Status hues describe a state and are never used for a button that isn't destructive.", "section": "colors" },
+      { "name": "The Tint Not Fill Rule", "body": "Coloured backgrounds are the hue at 5% to 10% opacity behind an icon or badge. Solid colour is for the primary action alone.", "section": "colors" },
+      { "name": "The Heaviest Is Money Rule", "body": "Amounts carry the heaviest weight (900) on the screen. Bold (700) is for titles, and nothing outranks a figure on a card.", "section": "typography" },
+      { "name": "The Thumb First Rule", "body": "The phone layout is the real layout. Wider screens rearrange the same content and never hold features the phone lacks.", "section": "layout" },
+      { "name": "The Hairline Rule", "body": "If two surfaces need separating, use a hairline or a gap before reaching for a shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use Gulf Teal for the one main action on a screen and let everything else stay quiet.",
+      "Do build list screens from the list card anatomy: icon tile, customer, meta line, amount, status badge.",
+      "Do build forms from form sections, capped at 1000px, and end document forms with the totals panel.",
+      "Do set money at weight 900 and pass the document's own currency to the formatter.",
+      "Do use Material components and theme roles rather than building equivalents.",
+      "Do use a darker shade of the status hue on new badges (700 or deeper), because the base green and amber on their own tint reach only about 2:1 to 2.5:1 contrast at 10px.",
+      "Do check new screens at phone width first."
+    ],
+    "donts": [
+      "Don't add heavier shadows or lift to cards; separation comes from hairlines and spacing.",
+      "Don't fill large areas with status colours; they stay as 5% to 10% tints behind icons and badges.",
+      "Don't add a second typeface.",
+      "Don't add iOS-style controls; the app follows Material on every platform it ships to.",
+      "Don't use a floating action button for anything except the screen's main creation action."
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_invoice_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart'; // Client model is here
 import 'package:flutter_invoice_app/features/client/data/client_repository.dart';
@@ -37,33 +38,58 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
     _taxIdController = TextEditingController(text: widget.client?.taxId ?? '');
   }
 
-  void _save() {
-    if (_formKey.currentState!.validate()) {
-      final client = Client(
-        id: widget.client?.id ?? const Uuid().v4(),
-        name: _nameController.text,
-        contactPerson: _contactPersonController.text.isEmpty
-            ? null
-            : _contactPersonController.text,
-        email: _emailController.text,
-        address: _addressController.text.isEmpty
-            ? null
-            : _addressController.text,
-        phone: _phoneController.text.isEmpty ? null : _phoneController.text,
-        taxId: _taxIdController.text.isEmpty ? null : _taxIdController.text,
-      );
+  bool _saving = false;
 
-      ref.read(clientRepositoryProvider).saveClient(client);
-      Navigator.pop(context);
+  String? _orNull(TextEditingController c) {
+    final v = c.text.trim();
+    return v.isEmpty ? null : v;
+  }
+
+  Future<void> _save() async {
+    if (_saving || !_formKey.currentState!.validate()) return;
+    final existing = widget.client;
+    final client = Client(
+      id: existing?.id ?? const Uuid().v4(),
+      name: _nameController.text.trim(),
+      contactPerson: _orNull(_contactPersonController),
+      email: _emailController.text.trim(),
+      address: _orNull(_addressController),
+      phone: _orNull(_phoneController),
+      taxId: _orNull(_taxIdController),
+      // Carry over fields the form doesn't show.
+      userId: existing?.userId,
+      updatedAt: existing?.updatedAt,
+    );
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(clientRepositoryProvider).saveClient(client);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      debugPrint('Failed to save company: $e');
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save the company. Try again.')),
+      );
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _contactPersonController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    _taxIdController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      backgroundColor: Theme.of(context).colorScheme.pageWash,
       appBar: AppBar(
         title: Text(
           widget.client == null ? 'New Company' : 'Edit Company',
@@ -73,7 +99,7 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: FilledButton.icon(
-              onPressed: _save,
+              onPressed: _saving ? null : _save,
               icon: const Icon(Icons.save_outlined, size: 20),
               label: const Text('Save'),
             ),
@@ -103,17 +129,21 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
                           prefixIcon: Icon(Icons.business),
                           hintText: 'Enter company name',
                         ),
-                        validator: (val) =>
-                            val == null || val.isEmpty ? 'Required' : null,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        validator: (val) => val == null || val.trim().isEmpty
+                            ? 'Enter the company name'
+                            : null,
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _taxIdController,
                         decoration: const InputDecoration(
-                          labelText: 'Tax ID / VAT',
+                          labelText: 'Tax Registration No. (TRN)',
                           prefixIcon: Icon(Icons.tag),
                           hintText: 'Optional',
                         ),
+                        textInputAction: TextInputAction.next,
                       ),
                     ],
                   ),
@@ -129,6 +159,8 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
                           prefixIcon: Icon(Icons.person_outline),
                           hintText: 'John Doe',
                         ),
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -139,8 +171,17 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
                           hintText: 'company@example.com',
                         ),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (val) =>
-                            val == null || val.isEmpty ? 'Required' : null,
+                        textInputAction: TextInputAction.next,
+                        autocorrect: false,
+                        validator: (val) {
+                          final v = val?.trim() ?? '';
+                          if (v.isEmpty) return 'Enter an email address';
+                          if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                              .hasMatch(v)) {
+                            return 'Enter a valid email, like name@company.com';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -150,6 +191,7 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
                           prefixIcon: Icon(Icons.phone_outlined),
                         ),
                         keyboardType: TextInputType.phone,
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -158,6 +200,7 @@ class _ClientFormScreenState extends ConsumerState<ClientFormScreen> {
                           labelText: 'Address',
                           prefixIcon: Icon(Icons.location_on_outlined),
                         ),
+                        textCapitalization: TextCapitalization.sentences,
                         maxLines: 3,
                       ),
                     ],

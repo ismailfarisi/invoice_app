@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/features/product/presentation/widgets/product_selector.dart';
 
@@ -7,6 +8,7 @@ class ItemCard extends StatelessWidget {
   final int index;
   final ValueChanged<LineItem> onUpdate;
   final VoidCallback onRemove;
+  final String currency;
 
   const ItemCard({
     super.key,
@@ -14,7 +16,14 @@ class ItemCard extends StatelessWidget {
     required this.index,
     required this.onUpdate,
     required this.onRemove,
+    this.currency = 'AED',
   });
+
+  static String _formatNumber(double value) {
+    return value == value.roundToDouble()
+        ? value.toInt().toString()
+        : value.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +65,11 @@ class ItemCard extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    tooltip: 'Remove item',
                     onPressed: onRemove,
                   ),
                 ],
@@ -112,9 +125,9 @@ class ItemCard extends StatelessWidget {
 
   Widget _buildQuantityField() {
     return TextFormField(
-      initialValue: item.quantity.toString(),
+      initialValue: _formatNumber(item.quantity),
       decoration: const InputDecoration(labelText: 'Qty'),
-      keyboardType: TextInputType.number,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       onChanged: (val) {
         final qty = double.tryParse(val) ?? 0;
         onUpdate(item.copyWith(quantity: qty, total: qty * item.unitPrice));
@@ -132,9 +145,9 @@ class ItemCard extends StatelessWidget {
 
   Widget _buildPriceField() {
     return TextFormField(
-      initialValue: item.unitPrice.toString(),
+      initialValue: _formatNumber(item.unitPrice),
       decoration: const InputDecoration(labelText: 'Price'),
-      keyboardType: TextInputType.number,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       onChanged: (val) {
         final price = double.tryParse(val) ?? 0;
         onUpdate(item.copyWith(unitPrice: price, total: item.quantity * price));
@@ -162,9 +175,19 @@ class ItemCard extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
-          Text(
-            item.total.toStringAsFixed(2),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          const SizedBox(width: 12),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                CurrencyFormatter.format(item.total, symbol: currency),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
           ),
         ],
       ),

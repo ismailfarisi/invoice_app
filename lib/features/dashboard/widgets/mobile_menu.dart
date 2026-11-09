@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_invoice_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/client/presentation/screens/client_list_screen.dart';
 import 'package:flutter_invoice_app/features/lpo/presentation/screens/lpo_list_screen.dart';
@@ -16,9 +17,7 @@ class MobileMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      backgroundColor: Theme.of(context).colorScheme.pageWash,
       appBar: AppBar(
         title: const Text(
           'Menu',
@@ -136,21 +135,24 @@ class _MenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color:
-              Theme.of(context).cardTheme.color ??
-              Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.2),
-          ),
+    final radius = BorderRadius.circular(24);
+    return Material(
+      color:
+          Theme.of(context).cardTheme.color ??
+          Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.2),
         ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+        padding: const EdgeInsets.all(20),
         child: Row(
           children: [
             Container(
@@ -190,9 +192,10 @@ class _MenuTile extends StatelessWidget {
               Icons.chevron_right_rounded,
               color: Theme.of(
                 context,
-              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
           ],
+        ),
         ),
       ),
     );

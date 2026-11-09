@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_invoice_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/lpo/domain/models/lpo.dart';
 import 'package:flutter_invoice_app/features/lpo/presentation/providers/lpo_provider.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_invoice_app/core/presentation/widgets/form/form_section.
 import 'package:flutter_invoice_app/core/presentation/widgets/form/form_total_row.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:flutter_invoice_app/features/lpo/presentation/screens/lpo_pdf_preview_screen.dart';
@@ -38,6 +40,8 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
   late TextEditingController _otherReferenceController;
   late TextEditingController _termsOfDeliveryController;
   double _vatRate = 5.0;
+  bool _dirty = false;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -73,6 +77,15 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
     // Load Default VAT Rate from settings
     final profile = ref.read(businessProfileRepositoryProvider).getProfile();
     _vatRate = profile?.defaultVatRate ?? 5.0;
+    // When editing, keep the rate the document was actually issued with.
+    final existing = widget.lpo;
+    if (existing != null &&
+        existing.isVatApplicable != false &&
+        existing.subtotal > 0 &&
+        existing.taxAmount > 0) {
+      _vatRate = (existing.taxAmount / existing.subtotal * 100 * 100).round() / 100;
+    }
+    if (existing == null) _date = DateTime.now();
   }
 
   @override
@@ -87,7 +100,40 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
     super.dispose();
   }
 
+  void _markDirty() {
+    if (!_dirty) setState(() => _dirty = true);
+  }
+
+  static String _label(String name) =>
+      name.isEmpty ? name : name[0].toUpperCase() + name.substring(1);
+
+  Future<bool> _confirmDiscard() async {
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Discard changes?'),
+        content: const Text('You have unsaved changes that will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep editing'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    return discard ?? false;
+  }
+
   void _addItem() {
+    _dirty = true;
     setState(() {
       _items.add(
         LineItem(description: '', quantity: 1, unitPrice: 0, total: 0),
@@ -96,12 +142,14 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
   }
 
   void _removeItem(int index) {
+    _dirty = true;
     setState(() {
       _items.removeAt(index);
     });
   }
 
   void _updateItem(int index, LineItem newItem) {
+    _dirty = true;
     setState(() {
       _items[index] = newItem.copyWith(id: _items[index].id);
     });
@@ -147,30 +195,58 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
         paymentTerms: _paymentTermsController.text,
         otherReference: _otherReferenceController.text,
         terms: _termsOfDeliveryController.text,
+        expectedDeliveryDate: widget.lpo?.expectedDeliveryDate,
+        notes: widget.lpo?.notes,
+        userId: widget.lpo?.userId,
       );
 
-      await ref.read(lpoListProvider.notifier).saveLpo(lpo);
-      if (context.mounted) Navigator.pop(context);
+      setState(() => _saving = true);
+      try {
+        await ref.read(lpoListProvider.notifier).saveLpo(lpo);
+        _dirty = false;
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Couldn't save. Your changes are still here, please try again."),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final discard = await _confirmDiscard();
+        if (discard && context.mounted) Navigator.pop(context);
+      },
+      child: Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.pageWash,
       appBar: AppBar(
         title: Text(
           widget.lpo == null ? 'New Purchase Order' : 'Edit Purchase Order',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
-          // PDF Preview Button Placeholder
           if (widget.lpo != null)
             IconButton(
+              tooltip: 'Preview PDF',
               icon: const Icon(Icons.picture_as_pdf_outlined),
               onPressed: () {
+                if (_dirty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Save your changes first to preview them'),
+                    ),
+                  );
+                  return;
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -183,7 +259,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: FilledButton.icon(
-              onPressed: _save,
+              onPressed: _saving ? null : _save,
               icon: const Icon(Icons.save_outlined, size: 20),
               label: const Text('Save'),
             ),
@@ -196,6 +272,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
             constraints: const BoxConstraints(maxWidth: 1000),
             child: Form(
               key: _formKey,
+              onChanged: _markDirty,
               child: ListView(
                 padding: const EdgeInsets.symmetric(
                   vertical: 24,
@@ -221,6 +298,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                           ),
                           const SizedBox(width: 12),
                           IconButton.filledTonal(
+                            tooltip: 'Add new vendor',
                             icon: const Icon(Icons.add),
                             onPressed: () {
                               Navigator.push(
@@ -280,8 +358,14 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                       const SizedBox(height: 20),
                       SwitchListTile(
                         title: const Text('VAT Applicable'),
+                        subtitle: Text(
+                          _isVatApplicable
+                              ? 'Adds ${_vatRate.toStringAsFixed(0)}% VAT to the total'
+                              : 'No VAT on this document',
+                        ),
                         value: _isVatApplicable,
                         onChanged: (val) {
+                          _dirty = true;
                           setState(() {
                             _isVatApplicable = val;
                           });
@@ -297,7 +381,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                         items: LpoStatus.values.map((status) {
                           return DropdownMenuItem(
                             value: status,
-                            child: Text(status.name.toUpperCase()),
+                            child: Text(_label(status.name)),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -314,6 +398,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                             lastDate: DateTime(2100),
                           );
                           if (date != null) {
+                            _dirty = true;
                             setState(() => _date = date);
                           }
                         },
@@ -324,8 +409,8 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                           ),
                           child: Text(
                             _date != null
-                                ? _date!.toString().split(' ')[0]
-                                : 'Select Date (Optional)',
+                                ? DateFormat.yMMMd().format(_date!)
+                                : 'Select date (optional)',
                           ),
                         ),
                       ),
@@ -422,6 +507,19 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  if (_items.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'No items yet. Tap Add Item to list what you are ordering.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ..._items.asMap().entries.map((entry) {
                     final index = entry.key;
                     final item = entry.value;
@@ -433,6 +531,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                         index: index,
                         onUpdate: (newItem) => _updateItem(index, newItem),
                         onRemove: () => _removeItem(index),
+                        currency: _currency,
                       ),
                     );
                   }),
@@ -481,7 +580,10 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Text(
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
                               CurrencyFormatter.format(
                                 _isVatApplicable
                                     ? _subtotal * (1 + _vatRate / 100)
@@ -494,6 +596,8 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -504,6 +608,7 @@ class _LpoFormScreenState extends ConsumerState<LpoFormScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

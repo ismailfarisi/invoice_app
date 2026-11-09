@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_invoice_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/settings/domain/models/business_profile.dart';
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
@@ -61,87 +62,100 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _spreadsheetId = profile?.googleSheetsSpreadsheetId;
   }
 
-  Future<void> _pickJsonFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-    );
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
-    if (result != null && result.files.single.path != null) {
-      final file = FileUtils.getFileIfExists(result.files.single.path);
-      if (file != null) {
-        final content = await file.readAsString();
-        try {
+  Future<void> _pickJsonFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = FileUtils.getFileIfExists(result.files.single.path);
+        if (file != null) {
+          final content = await file.readAsString();
           // Validate JSON
           jsonDecode(content);
+          if (!mounted) return;
           setState(() {
             _serviceAccountJson = content;
           });
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Invalid JSON file')));
-          }
         }
       }
+    } catch (_) {
+      _snack(
+        'That file could not be used. Choose the .json key file you '
+        'downloaded from Google Cloud.',
+      );
     }
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
-    if (pickedFile != null) {
-      final permanentPath = await FileUtils.saveLogoImage(pickedFile.path);
-      setState(() {
-        _logoPath = permanentPath;
-      });
+      if (pickedFile != null) {
+        final permanentPath = await FileUtils.saveLogoImage(pickedFile.path);
+        if (!mounted) return;
+        setState(() {
+          _logoPath = permanentPath;
+        });
+      }
+    } catch (_) {
+      _snack('Could not load that picture. Try a different image.');
     }
   }
 
   Future<void> _save() async {
-    if (_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate()) {
+      _snack('Please fix the highlighted fields.');
+      return;
+    }
+    try {
+      final repo = ref.read(businessProfileRepositoryProvider);
+      final existing = repo.getProfile();
       final profile = BusinessProfile(
-        companyName: _nameController.text,
-        email: _emailController.text,
-        phone: _phoneController.text,
-        address: _addressController.text,
-        taxId: _taxIdController.text,
-        bankDetails: _bankDetailsController.text,
-        website: _websiteController.text,
-        mobile: _mobileController.text,
+        companyName: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        address: _addressController.text.trim(),
+        taxId: _taxIdController.text.trim(),
+        bankDetails: _bankDetailsController.text.trim(),
+        website: _websiteController.text.trim(),
+        mobile: _mobileController.text.trim(),
         logoPath: _logoPath,
         currency: _selectedCurrency ?? 'AED',
-        defaultVatRate: double.tryParse(_vatRateController.text) ?? 5.0,
+        defaultVatRate: double.tryParse(_vatRateController.text.trim()) ?? 5.0,
         googleSheetsSyncEnabled: _syncEnabled,
         googleSheetsServiceAccountJson: _serviceAccountJson,
         googleSheetsSpreadsheetId: _spreadsheetId,
+        // Fields the form does not show: keep what is stored.
+        userId: existing?.userId,
+        updatedAt: DateTime.now(),
       );
 
-      await ref.read(businessProfileRepositoryProvider).saveProfile(profile);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Settings saved successfully')),
-        );
-      }
+      await repo.saveProfile(profile);
+      _snack('Settings saved');
+    } catch (_) {
+      _snack('Could not save your settings. Please try again.');
     }
   }
 
   Future<void> _exportData() async {
     try {
       await BackupService().exportData();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data exported successfully')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
-      }
+      _snack('Backup file created');
+    } catch (_) {
+      _snack(
+        'Could not create the backup. Check free storage space and try again.',
+      );
     }
   }
 
@@ -151,7 +165,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Import Backup?'),
         content: const Text(
-          'This will overwrite all current data with the backup data. This action cannot be undone.',
+          'This replaces everything on this phone (invoices, clients, products and settings) with the backup. This cannot be undone. Export a backup first if you are unsure.',
         ),
         actions: [
           TextButton(
@@ -200,9 +214,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+          _snack(
+            'Could not import that backup. Choose a backup file made by this '
+            'app and try again.',
+          );
         }
       }
     }
@@ -222,7 +237,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ).push(MaterialPageRoute(builder: (context) => const AuthScreen()));
         },
         icon: const Icon(Icons.login),
-        label: const Text('Login / Register to Sync'),
+        label: const Text('Sign in to back up and sync'),
         style: FilledButton.styleFrom(
           minimumSize: const Size(double.infinity, 48),
         ),
@@ -235,7 +250,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         Row(
           children: [
             CircleAvatar(
-              child: Text(user.email!.substring(0, 1).toUpperCase()),
+              child: Text(
+                (user.email != null && user.email!.isNotEmpty)
+                    ? user.email!.substring(0, 1).toUpperCase()
+                    : '?',
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -244,19 +263,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   Text(
                     user.email ?? 'User',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  const Text(
-                    'Logged in',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  Text(
+                    'Signed in',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             ),
             IconButton(
               icon: const Icon(Icons.logout),
+              tooltip: 'Sign out',
               onPressed: () async {
-                await ref.read(supabaseServiceProvider).signOut();
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Sign out?'),
+                    content: const Text(
+                      'Your invoices stay on this phone. Syncing stops until you sign in again.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Sign out'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm != true) return;
+                try {
+                  await ref.read(supabaseServiceProvider).signOut();
+                } catch (_) {
+                  _snack('Could not sign out. Check your connection and try again.');
+                }
               },
             ),
           ],
@@ -268,36 +317,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: FilledButton.icon(
                 onPressed: isLoading
                     ? null
-                    : () {
-                        ref.read(syncProvider.notifier).sync().then((_) {
-                          if (mounted) {
-                            final stats = ref.read(syncProvider).value;
-                            if (stats != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Sync Completed! Pushed: ${stats.pushed}, Pulled: ${stats.pulled}',
-                                  ),
-                                ),
-                              );
-                            } else if (ref.read(syncProvider) is! AsyncError) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Sync Completed!'),
-                                ),
-                              );
-                            }
-                          }
-                        });
+                    : () async {
+                        try {
+                          await ref.read(syncProvider.notifier).sync();
+                        } catch (_) {
+                          _snack('Sync failed. Check your connection and try again.');
+                          return;
+                        }
+                        if (!mounted) return;
+                        final current = ref.read(syncProvider);
+                        final stats = current.value;
+                        if (current is AsyncError) {
+                          _snack('Sync failed. Check your connection and try again.');
+                        } else if (stats != null) {
+                          _snack(
+                            'Sync done. Sent ${stats.pushed}, received ${stats.pulled}.',
+                          );
+                        } else {
+                          _snack('Sync done.');
+                        }
                       },
                 icon: isLoading
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.sync),
                 label: Text(isLoading ? 'Syncing...' : 'Sync Now'),
@@ -312,7 +356,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
-              'Sync Error: ${syncState.error}',
+              'Last sync did not finish. Check your connection and tap Sync Now to try again.',
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
@@ -320,9 +364,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
-              'Last Sync: Pushed ${syncState.value!.pushed}, Pulled ${syncState.value!.pulled}',
-              style: const TextStyle(
-                color: Colors.green,
+              'Last sync: sent ${syncState.value!.pushed}, received ${syncState.value!.pulled}',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -350,22 +394,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             );
             if (confirm == true) {
-              await ref.read(syncProvider.notifier).resetSync();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Sync status reset. Click "Sync Now" to re-upload.',
-                    ),
-                  ),
-                );
+              try {
+                await ref.read(syncProvider.notifier).resetSync();
+                _snack('Sync status reset. Tap Sync Now to upload everything again.');
+              } catch (_) {
+                _snack('Could not reset the sync status. Please try again.');
               }
             }
           },
           icon: const Icon(Icons.refresh),
-          label: const Text('Reset Sync Status (Troubleshoot)'),
+          label: const Text('Re-upload everything (troubleshooting)'),
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 40),
+            minimumSize: const Size(double.infinity, 48),
             foregroundColor: Theme.of(context).colorScheme.secondary,
           ),
         ),
@@ -376,9 +416,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      backgroundColor: Theme.of(context).colorScheme.pageWash,
       appBar: AppBar(
         title: const Text(
           'Business Settings',
@@ -395,30 +433,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 padding: const EdgeInsets.all(24),
                 children: [
                   Center(
-                    child: GestureDetector(
-                      onTap: _pickImage,
-                      child: Builder(
-                        builder: (context) {
-                          final logoFile = FileUtils.getFileIfExists(_logoPath);
-                          return CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.surface,
-                            backgroundImage: logoFile != null
-                                ? FileImage(logoFile)
-                                : null,
-                            child: logoFile == null
-                                ? Icon(
-                                    Icons.add_a_photo,
-                                    size: 40,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  )
-                                : null,
-                          );
-                        },
+                    child: Builder(
+                      builder: (context) {
+                        final logoFile = FileUtils.getFileIfExists(_logoPath);
+                        return Semantics(
+                          button: true,
+                          label: logoFile == null
+                              ? 'Add company logo'
+                              : 'Change company logo',
+                          child: Material(
+                            color: Theme.of(context).colorScheme.surface,
+                            shape: const CircleBorder(),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: _pickImage,
+                              child: SizedBox(
+                                width: 100,
+                                height: 100,
+                                child: logoFile != null
+                                    ? Image.file(
+                                        logoFile,
+                                        fit: BoxFit.cover,
+                                        excludeFromSemantics: true,
+                                        errorBuilder: (_, _, _) => Icon(
+                                          Icons.add_a_photo,
+                                          size: 40,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.add_a_photo,
+                                        size: 40,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      'Company logo (shown on your documents)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -433,8 +498,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           labelText: 'Company Name',
                           prefixIcon: Icon(Icons.business),
                         ),
-                        validator: (val) =>
-                            val == null || val.isEmpty ? 'Required' : null,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
+                        validator: (val) => val == null || val.trim().isEmpty
+                            ? 'Enter your company name'
+                            : null,
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -443,6 +511,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           labelText: 'Company Email',
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -451,6 +521,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           labelText: 'Company Phone',
                           prefixIcon: Icon(Icons.phone_outlined),
                         ),
+                        keyboardType: TextInputType.phone,
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -459,6 +531,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           labelText: 'Company Mobile',
                           prefixIcon: Icon(Icons.smartphone),
                         ),
+                        keyboardType: TextInputType.phone,
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -467,6 +541,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           labelText: 'Website',
                           prefixIcon: Icon(Icons.language),
                         ),
+                        keyboardType: TextInputType.url,
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -476,14 +552,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           prefixIcon: Icon(Icons.location_on_outlined),
                         ),
                         maxLines: 2,
+                        keyboardType: TextInputType.streetAddress,
+                        textCapitalization: TextCapitalization.sentences,
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _taxIdController,
                         decoration: const InputDecoration(
-                          labelText: 'Tax ID / VAT Number',
+                          labelText: 'Tax Registration Number (TRN)',
                           prefixIcon: Icon(Icons.tag),
                         ),
+                        textInputAction: TextInputAction.next,
                       ),
                     ],
                   ),
@@ -495,9 +574,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       TextFormField(
                         controller: _bankDetailsController,
                         decoration: const InputDecoration(
-                          labelText: 'Bank Details (for PDF)',
+                          labelText: 'Bank Details (printed on invoices)',
                           hintText:
-                              'Bank Name: XYZ\nAccount: 123456789\nIFSC: ABCD0123',
+                              'Bank Name: XYZ\nAccount: 123456789\nIBAN: AE00 0000 0000 0000 0000 000',
                           prefixIcon: Icon(Icons.account_balance_outlined),
                         ),
                         maxLines: 4,
@@ -514,9 +593,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           decimal: true,
                         ),
                         validator: (val) {
-                          if (val == null || val.isEmpty) return 'Required';
-                          if (double.tryParse(val) == null) {
-                            return 'Enter a valid number';
+                          final v = val?.trim() ?? '';
+                          if (v.isEmpty) return 'Enter a VAT rate, like 5';
+                          final n = double.tryParse(v);
+                          if (n == null || n < 0 || n > 100) {
+                            return 'Enter a number from 0 to 100';
                           }
                           return null;
                         },
@@ -528,8 +609,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           labelText: 'Currency',
                           prefixIcon: Icon(Icons.monetization_on_outlined),
                         ),
-                        items: ['AED', 'USD', 'EUR', 'GBP', 'INR', 'SAR', 'QAR']
-                            .map(
+                        items:
+                            [
+                                  'AED',
+                                  'USD',
+                                  'EUR',
+                                  'GBP',
+                                  'INR',
+                                  'SAR',
+                                  'QAR',
+                                  if (_selectedCurrency != null &&
+                                      !const [
+                                        'AED',
+                                        'USD',
+                                        'EUR',
+                                        'GBP',
+                                        'INR',
+                                        'SAR',
+                                        'QAR',
+                                      ].contains(_selectedCurrency))
+                                    _selectedCurrency!,
+                                ]
+                                .map(
                               (c) => DropdownMenuItem(value: c, child: Text(c)),
                             )
                             .toList(),
@@ -607,12 +708,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       if (_serviceAccountJson != null) ...[
                         const SizedBox(height: 12),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
                           child: Text(
-                            'Status: Active',
+                            'Key file added. Tap Save Settings to keep it.',
                             style: TextStyle(
-                              color: Colors.green,
+                              color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -624,9 +725,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
                           child: Text(
                             'Spreadsheet ID: $_spreadsheetId',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -635,17 +738,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       if (_syncEnabled && _serviceAccountJson != null)
                         FilledButton.icon(
                           onPressed: () async {
-                            await ref.read(syncServiceProvider).syncAll();
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Sync triggered successfully'),
-                                ),
+                            try {
+                              await ref.read(syncServiceProvider).syncAll();
+                              _snack('Sent to Google Sheets');
+                            } catch (_) {
+                              _snack(
+                                'Could not reach Google Sheets. Check your connection and the key file, then try again.',
                               );
                             }
                           },
                           icon: const Icon(Icons.sync),
-                          label: const Text('Sync Now'),
+                          label: const Text('Send to Google Sheets now'),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(double.infinity, 48),
                           ),
@@ -703,11 +806,13 @@ class _SettingsSection extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

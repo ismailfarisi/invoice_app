@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 class CurrencyFormatter {
   static String format(
     double amount, {
-    String symbol = '\$',
+    String symbol = 'AED',
     String? currency,
   }) {
     final effectiveSymbol = currency ?? symbol;

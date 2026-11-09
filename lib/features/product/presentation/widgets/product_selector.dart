@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
+import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
 import 'package:flutter_invoice_app/features/product/domain/models/product.dart';
 import 'package:flutter_invoice_app/features/product/presentation/screens/product_form_screen.dart';
 
-class ProductSelector extends StatelessWidget {
+class ProductSelector extends ConsumerWidget {
   final ValueChanged<Product?> onChanged;
   final Product? selectedProduct;
 
@@ -14,7 +17,10 @@ class ProductSelector extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currency =
+        ref.watch(settingsRepositoryProvider).getBusinessProfile()?.currency ??
+        'AED';
     return ValueListenableBuilder(
       valueListenable: Hive.box<Product>('products').listenable(),
       builder: (context, Box<Product> box, _) {
@@ -24,13 +30,14 @@ class ProductSelector extends StatelessWidget {
           builder: (context, constraints) {
             return Autocomplete<Product>(
               optionsBuilder: (TextEditingValue textEditingValue) {
-                if (textEditingValue.text.isEmpty) {
-                  return const Iterable<Product>.empty();
+                final query = textEditingValue.text.trim().toLowerCase();
+                if (query.isEmpty) {
+                  // Show saved items on focus so nothing has to be remembered.
+                  return products;
                 }
                 return products.where((Product product) {
-                  return product.name.toLowerCase().contains(
-                    textEditingValue.text.toLowerCase(),
-                  );
+                  return product.name.toLowerCase().contains(query) ||
+                      (product.sku?.toLowerCase().contains(query) ?? false);
                 });
               },
               displayStringForOption: (Product option) => option.name,
@@ -56,6 +63,7 @@ class ProductSelector extends StatelessWidget {
                         hintText: 'Type to search...',
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.add_circle_outline),
+                          tooltip: 'Add a new product/service',
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -96,10 +104,15 @@ class ProductSelector extends StatelessWidget {
                               return ListTile(
                                 title: Text(
                                   option.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context).textTheme.bodyLarge,
                                 ),
                                 subtitle: Text(
-                                  '\$${option.unitPrice.toStringAsFixed(2)}',
+                                  CurrencyFormatter.format(
+                                    option.unitPrice,
+                                    symbol: currency,
+                                  ),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 onTap: () {

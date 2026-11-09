@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_invoice_app/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/core/presentation/widgets/form/form_section.dart';
@@ -144,6 +145,38 @@ class _CreditNoteFormScreenState extends ConsumerState<CreditNoteFormScreen> {
   double get _subtotal => _lines.fold(0.0, (sum, l) => sum + l.amount);
   double get _tax => _isVat ? _subtotal * (_vatRate / 100) : 0.0;
   bool get _allSelected => _lines.every((l) => l.selected);
+  bool get _isDirty =>
+      _reasonController.text.trim().isNotEmpty ||
+      _lines.any((l) => !l.selected || !l._isUnchanged);
+
+  final _reasonFocus = FocusNode();
+
+  Future<void> _confirmDiscard() async {
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Discard this credit note?'),
+        content: const Text(
+          'Nothing has been issued. Your changes will be lost.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep Editing'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    if (discard == true && mounted) Navigator.of(context).pop();
+  }
 
   @override
   void initState() {
@@ -171,6 +204,7 @@ class _CreditNoteFormScreenState extends ConsumerState<CreditNoteFormScreen> {
   @override
   void dispose() {
     _reasonController.dispose();
+    _reasonFocus.dispose();
     for (final line in _lines) {
       line.dispose();
     }
@@ -209,6 +243,8 @@ class _CreditNoteFormScreenState extends ConsumerState<CreditNoteFormScreen> {
   Future<void> _issue() async {
     if (_saving) return;
     if (!_formKey.currentState!.validate()) {
+      // Bring the empty reason into view, even if it is scrolled off screen.
+      _reasonFocus.requestFocus();
       _showMessage('Add a reason before issuing.');
       return;
     }
@@ -274,221 +310,244 @@ class _CreditNoteFormScreenState extends ConsumerState<CreditNoteFormScreen> {
     final colors = Theme.of(context).colorScheme;
     final invoiceDate = _invoice.date;
 
-    return Scaffold(
-      backgroundColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-      appBar: AppBar(
-        title: const Text(
-          'New Credit Note',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: FilledButton.icon(
-              onPressed: _saving ? null : _issue,
-              icon: const Icon(Icons.check, size: 20),
-              label: const Text('Issue'),
-            ),
+    return PopScope(
+      canPop: !_isDirty || _saving,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmDiscard();
+      },
+      child: Scaffold(
+        backgroundColor: colors.pageWash,
+        appBar: AppBar(
+          title: const Text(
+            'New Credit Note',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Form(
-              key: _formKey,
-              // Not a lazy list: a field scrolled out of a ListView is
-              // unmounted, and the form would skip validating it.
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    FormSection(
-                      title: 'Original Invoice',
-                      icon: Icons.receipt_long_outlined,
-                      children: [
-                        _InfoField(
-                          label: 'Customer',
-                          value: _invoice.client.name,
-                        ),
-                        _InfoField(
-                          label: 'Invoice',
-                          value: invoiceDate != null
-                              ? '${_invoice.invoiceNumber} • ${DateFormat.yMMMd().format(invoiceDate)}'
-                              : _invoice.invoiceNumber,
-                        ),
-                        _InfoField(
-                          label: 'Invoice Total',
-                          value: _money(_invoice.total),
-                        ),
-                        _InfoField(
-                          label: 'Already Credited',
-                          value: _money(_alreadyCredited),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    FormSection(
-                      title: 'Credit Note Details',
-                      icon: Icons.info_outline,
-                      children: [
-                        _InfoField(label: 'Credit Note Number', value: _number),
-                        InkWell(
-                          onTap: _pickDate,
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'Credit Note Date',
-                              prefixIcon: Icon(Icons.calendar_today),
-                            ),
-                            child: Text(DateFormat.yMMMd().format(_date)),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _issue,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check, size: 20),
+                label: Text(_saving ? 'Issuing' : 'Issue'),
+              ),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1000),
+              child: Form(
+                key: _formKey,
+                // Not a lazy list: a field scrolled out of a ListView is
+                // unmounted, and the form would skip validating it.
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      FormSection(
+                        title: 'Original Invoice',
+                        icon: Icons.receipt_long_outlined,
+                        children: [
+                          _InfoField(
+                            label: 'Customer',
+                            value: _invoice.client.name,
                           ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            TextFormField(
-                              key: const ValueKey('credit-note-reason'),
-                              controller: _reasonController,
-                              autovalidateMode:
-                                  AutovalidateMode.onUserInteraction,
+                          _InfoField(
+                            label: 'Invoice',
+                            value: invoiceDate != null
+                                ? '${_invoice.invoiceNumber} • ${DateFormat.yMMMd().format(invoiceDate)}'
+                                : _invoice.invoiceNumber,
+                          ),
+                          _InfoField(
+                            label: 'Invoice Total',
+                            value: _money(_invoice.total),
+                          ),
+                          _InfoField(
+                            label: 'Already Credited',
+                            value: _money(_alreadyCredited),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      FormSection(
+                        title: 'Credit Note Details',
+                        icon: Icons.info_outline,
+                        children: [
+                          _InfoField(
+                            label: 'Credit Note Number',
+                            value: _number,
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: _pickDate,
+                            child: InputDecorator(
                               decoration: const InputDecoration(
-                                labelText: 'Reason',
-                                hintText: 'Shown on the credit note',
+                                labelText: 'Credit Note Date',
+                                prefixIcon: Icon(Icons.calendar_today),
                               ),
-                              maxLines: 2,
-                              validator: (value) =>
-                                  value == null || value.trim().isEmpty
-                                  ? 'Enter the reason for this credit note'
-                                  : null,
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 4,
-                              children: _reasonSuggestions.map((reason) {
-                                return ActionChip(
-                                  label: Text(reason),
-                                  onPressed: () => setState(
-                                    () => _reasonController.text = reason,
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Items to Credit',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              child: Text(DateFormat.yMMMd().format(_date)),
                             ),
                           ),
-                          TextButton(
-                            onPressed: _toggleAll,
-                            child: Text(
-                              _allSelected ? 'Clear All' : 'Select All',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color:
-                            Theme.of(context).cardTheme.color ?? colors.surface,
-                        border: Border.all(
-                          color: colors.outlineVariant.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < _lines.length; i++) ...[
-                            if (i > 0) const Divider(height: 1),
-                            _CreditLineRow(
-                              index: i,
-                              line: _lines[i],
-                              currency: _currency,
-                              onChanged: () => setState(() {}),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: colors.primary.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: colors.primary.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          FormTotalRow(
-                            label: 'Subtotal',
-                            value: _subtotal,
-                            currency: _currency,
-                          ),
-                          const SizedBox(height: 8),
-                          if (_isVat) ...[
-                            FormTotalRow(
-                              label: 'VAT (${_formatRate(_vatRate)}%)',
-                              value: _tax,
-                              currency: _currency,
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Divider(),
-                            ),
-                          ],
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Total Credit',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                              TextFormField(
+                                key: const ValueKey('credit-note-reason'),
+                                controller: _reasonController,
+                                focusNode: _reasonFocus,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                                onChanged: (_) => setState(() {}),
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                                decoration: const InputDecoration(
+                                  labelText: 'Reason',
+                                  hintText: 'Shown on the credit note',
                                 ),
+                                maxLines: 2,
+                                validator: (value) =>
+                                    value == null || value.trim().isEmpty
+                                    ? 'Enter the reason for this credit note'
+                                    : null,
                               ),
-                              const SizedBox(width: 12),
-                              // Large amounts shrink rather than overflow on phones.
-                              Flexible(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerRight,
-                                  child: Text(
-                                    _money(_subtotal + _tax),
-                                    key: const ValueKey('credit-note-total'),
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w900,
-                                      color: colors.primary,
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: _reasonSuggestions.map((reason) {
+                                  return ActionChip(
+                                    label: Text(reason),
+                                    onPressed: () => setState(
+                                      () => _reasonController.text = reason,
                                     ),
-                                  ),
-                                ),
+                                  );
+                                }).toList(),
                               ),
                             ],
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 32),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Items to Credit',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _toggleAll,
+                              child: Text(
+                                _allSelected ? 'Clear All' : 'Select All',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(context).cardTheme.color ??
+                              colors.surface,
+                          border: Border.all(
+                            color: colors.outlineVariant.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < _lines.length; i++) ...[
+                              if (i > 0) const Divider(height: 1),
+                              _CreditLineRow(
+                                index: i,
+                                line: _lines[i],
+                                currency: _currency,
+                                onChanged: () => setState(() {}),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: colors.primary.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: colors.primary.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            FormTotalRow(
+                              label: 'Subtotal',
+                              value: _subtotal,
+                              currency: _currency,
+                            ),
+                            const SizedBox(height: 8),
+                            if (_isVat) ...[
+                              FormTotalRow(
+                                label: 'VAT (${_formatRate(_vatRate)}%)',
+                                value: _tax,
+                                currency: _currency,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                child: Divider(),
+                              ),
+                            ],
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Total Credit',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Large amounts shrink rather than overflow on phones.
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      _money(_subtotal + _tax),
+                                      key: const ValueKey('credit-note-total'),
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        color: colors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -616,10 +675,19 @@ class _CreditLineRow extends StatelessWidget {
       key: ValueKey('credit-rate-$index'),
       controller: line.rate,
     );
-    final amount = Text(
+    // Large amounts shrink rather than overflow beside the description.
+    final amountText = Text(
       CurrencyFormatter.format(line.amount, symbol: currency),
       textAlign: TextAlign.right,
       style: TextStyle(fontWeight: FontWeight.w700, color: titleColor),
+    );
+    Widget amountBox(double maxWidth) => ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerRight,
+        child: amountText,
+      ),
     );
 
     return Padding(
@@ -638,7 +706,7 @@ class _CreditLineRow extends StatelessWidget {
                 const SizedBox(width: 12),
                 SizedBox(width: 112, child: rateField),
                 const SizedBox(width: 16),
-                SizedBox(width: 128, child: amount),
+                SizedBox(width: 128, child: amountBox(128)),
               ],
             );
           }
@@ -651,7 +719,7 @@ class _CreditLineRow extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(child: details),
                   const SizedBox(width: 12),
-                  amount,
+                  amountBox(constraints.maxWidth * 0.4),
                 ],
               ),
               const SizedBox(height: 12),

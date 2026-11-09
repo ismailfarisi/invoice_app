@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_invoice_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/proforma/domain/models/proforma.dart';
 import 'package:flutter_invoice_app/features/proforma/presentation/providers/proforma_provider.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_invoice_app/core/presentation/widgets/item_card.dart';
 import 'package:flutter_invoice_app/core/presentation/widgets/form/form_section.dart';
 import 'package:flutter_invoice_app/core/presentation/widgets/form/form_total_row.dart';
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_invoice_app/features/proforma/presentation/screens/proforma_pdf_preview_screen.dart';
 import 'package:flutter_invoice_app/features/settings/data/settings_repository.dart';
@@ -34,6 +36,8 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
   String _currency = 'AED';
   late TextEditingController _projectController;
   double _vatRate = 5.0;
+  bool _dirty = false;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -60,6 +64,15 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
     // Load Default VAT Rate from settings
     final profile = ref.read(businessProfileRepositoryProvider).getProfile();
     _vatRate = profile?.defaultVatRate ?? 5.0;
+    // When editing, keep the rate the document was actually issued with.
+    final existing = widget.proforma;
+    if (existing != null &&
+        existing.isVatApplicable != false &&
+        existing.subtotal > 0 &&
+        existing.taxAmount > 0) {
+      _vatRate = (existing.taxAmount / existing.subtotal * 100 * 100).round() / 100;
+    }
+    if (existing == null) _date = DateTime.now();
   }
 
   @override
@@ -72,7 +85,40 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
     super.dispose();
   }
 
+  void _markDirty() {
+    if (!_dirty) setState(() => _dirty = true);
+  }
+
+  static String _label(String name) =>
+      name.isEmpty ? name : name[0].toUpperCase() + name.substring(1);
+
+  Future<bool> _confirmDiscard() async {
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Discard changes?'),
+        content: const Text('You have unsaved changes that will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep editing'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    return discard ?? false;
+  }
+
   void _addItem() {
+    _dirty = true;
     setState(() {
       _items.add(
         LineItem(description: '', quantity: 1, unitPrice: 0, total: 0),
@@ -81,12 +127,14 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
   }
 
   void _removeItem(int index) {
+    _dirty = true;
     setState(() {
       _items.removeAt(index);
     });
   }
 
   void _updateItem(int index, LineItem newItem) {
+    _dirty = true;
     setState(() {
       _items[index] = newItem.copyWith(id: _items[index].id);
     });
@@ -131,19 +179,40 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
         isVatApplicable: _isVatApplicable,
         currency: _currency,
         project: _projectController.text,
+        validUntil: widget.proforma?.validUntil,
+        notes: widget.proforma?.notes,
+        terms: widget.proforma?.terms,
+        userId: widget.proforma?.userId,
       );
 
-      await ref.read(proformaListProvider.notifier).saveProforma(proforma);
-      if (context.mounted) Navigator.pop(context);
+      setState(() => _saving = true);
+      try {
+        await ref.read(proformaListProvider.notifier).saveProforma(proforma);
+        _dirty = false;
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Couldn't save. Your changes are still here, please try again."),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final discard = await _confirmDiscard();
+        if (discard && context.mounted) Navigator.pop(context);
+      },
+      child: Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.pageWash,
       appBar: AppBar(
         title: Text(
           widget.proforma == null ? 'New Proforma Invoice' : 'Edit Proforma',
@@ -152,8 +221,17 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
         actions: [
           if (widget.proforma != null)
             IconButton(
+              tooltip: 'Preview PDF',
               icon: const Icon(Icons.picture_as_pdf_outlined),
               onPressed: () {
+                if (_dirty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Save your changes first to preview them'),
+                    ),
+                  );
+                  return;
+                }
                 if (widget.proforma != null) {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -168,7 +246,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: FilledButton.icon(
-              onPressed: _save,
+              onPressed: _saving ? null : _save,
               icon: const Icon(Icons.save_outlined, size: 20),
               label: const Text('Save'),
             ),
@@ -181,6 +259,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
             constraints: const BoxConstraints(maxWidth: 1000),
             child: Form(
               key: _formKey,
+              onChanged: _markDirty,
               child: ListView(
                 padding: const EdgeInsets.symmetric(
                   vertical: 24,
@@ -206,6 +285,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                           ),
                           const SizedBox(width: 12),
                           IconButton.filledTonal(
+                            tooltip: 'Add new client',
                             icon: const Icon(Icons.add),
                             onPressed: () {
                               Navigator.push(
@@ -273,8 +353,14 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                       const SizedBox(height: 20),
                       SwitchListTile(
                         title: const Text('VAT Applicable'),
+                        subtitle: Text(
+                          _isVatApplicable
+                              ? 'Adds ${_vatRate.toStringAsFixed(0)}% VAT to the total'
+                              : 'No VAT on this document',
+                        ),
                         value: _isVatApplicable,
                         onChanged: (val) {
+                          _dirty = true;
                           setState(() {
                             _isVatApplicable = val;
                           });
@@ -290,7 +376,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                         items: ProformaStatus.values.map((status) {
                           return DropdownMenuItem(
                             value: status,
-                            child: Text(status.name.toUpperCase()),
+                            child: Text(_label(status.name)),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -307,6 +393,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                             lastDate: DateTime(2100),
                           );
                           if (date != null) {
+                            _dirty = true;
                             setState(() => _date = date);
                           }
                         },
@@ -317,8 +404,8 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                           ),
                           child: Text(
                             _date != null
-                                ? _date!.toString().split(' ')[0]
-                                : 'Select Date (Optional)',
+                                ? DateFormat.yMMMd().format(_date!)
+                                : 'Select date (optional)',
                           ),
                         ),
                       ),
@@ -362,6 +449,19 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  if (_items.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'No items yet. Tap Add Item to list what you are quoting.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ..._items.asMap().entries.map((entry) {
                     final index = entry.key;
                     final item = entry.value;
@@ -373,6 +473,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                         index: index,
                         onUpdate: (newItem) => _updateItem(index, newItem),
                         onRemove: () => _removeItem(index),
+                        currency: _currency,
                       ),
                     );
                   }),
@@ -421,7 +522,10 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Text(
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
                               CurrencyFormatter.format(
                                 _isVatApplicable
                                     ? _subtotal * (1 + _vatRate / 100)
@@ -434,6 +538,8 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -444,6 +550,7 @@ class _ProformaFormScreenState extends ConsumerState<ProformaFormScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

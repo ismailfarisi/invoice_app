@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_invoice_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_invoice_app/features/credit_note/data/credit_note_repository.dart';
@@ -76,10 +77,12 @@ class DashboardOverview extends ConsumerWidget {
         )
         .fold(0.0, (sum, p) => sum + p.total);
 
+    final recentInvoices = invoices.reversed.take(5).toList();
+    // Totals add up every invoice, so they are shown in the default currency.
+    String money(double v) => CurrencyFormatter.format(v, symbol: 'AED');
+
     return Scaffold(
-      backgroundColor: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      backgroundColor: Theme.of(context).colorScheme.pageWash,
       appBar: AppBar(
         title: const Text(
           'Analytics Dashboard',
@@ -120,17 +123,21 @@ class DashboardOverview extends ConsumerWidget {
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: constraints.maxWidth > 600 ? 1.5 : 0.95,
+                      childAspectRatio:
+                          (constraints.maxWidth > 600 ? 1.5 : 0.95) /
+                          MediaQuery.textScalerOf(
+                            context,
+                          ).scale(1.0).clamp(1.0, 2.0),
                       children: [
                         _StatCard(
                           title: 'Revenue (Paid)',
-                          value: CurrencyFormatter.format(totalRevenue),
+                          value: money(totalRevenue),
                           icon: Icons.payments_outlined,
                           color: Colors.green,
                         ),
                         _StatCard(
                           title: 'Outstanding',
-                          value: CurrencyFormatter.format(pendingAmount),
+                          value: money(pendingAmount),
                           icon: Icons.pending_actions_outlined,
                           color: Colors.orange,
                         ),
@@ -142,7 +149,7 @@ class DashboardOverview extends ConsumerWidget {
                         ),
                         _StatCard(
                           title: 'Avg. Invoice',
-                          value: CurrencyFormatter.format(avgInvoiceValue),
+                          value: money(avgInvoiceValue),
                           icon: Icons.receipt_long_outlined,
                           color: Colors.purple,
                         ),
@@ -159,7 +166,7 @@ class DashboardOverview extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Revenue Trend',
+                            'Invoiced, Last 7 Days',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -200,15 +207,16 @@ class DashboardOverview extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to all invoices
-                      },
-                      child: const Text('View All'),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
+                if (invoices.isEmpty)
+                  Text(
+                    'No invoices yet. Open the Invoices tab and tap New Invoice to create your first one.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
               ]),
             ),
           ),
@@ -216,12 +224,12 @@ class DashboardOverview extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
-                final invoice = invoices.reversed.toList()[index];
+                final invoice = recentInvoices[index];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _RecentInvoiceTile(invoice: invoice),
                 );
-              }, childCount: invoices.length > 5 ? 5 : invoices.length),
+              }, childCount: recentInvoices.length),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
@@ -229,6 +237,29 @@ class DashboardOverview extends ConsumerWidget {
       ),
     );
   }
+}
+
+MaterialColor _statusBase(InvoiceStatus status) {
+  switch (status) {
+    case InvoiceStatus.paid:
+      return Colors.green;
+    case InvoiceStatus.sent:
+      return Colors.blue;
+    case InvoiceStatus.overdue:
+      return Colors.red;
+    case InvoiceStatus.cancelled:
+      return Colors.grey;
+    case InvoiceStatus.draft:
+      return Colors.orange;
+  }
+}
+
+/// Badge text colour: a deep shade on light, a pale shade on dark, so it
+/// stays readable on its own 10% tint.
+Color _statusText(BuildContext context, InvoiceStatus status) {
+  final dark = Theme.of(context).brightness == Brightness.dark;
+  final base = _statusBase(status);
+  return dark ? base.shade200 : base.shade900;
 }
 
 class _StatCard extends StatelessWidget {
@@ -247,7 +278,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color:
             Theme.of(context).cardTheme.color ??
@@ -273,6 +304,8 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 14,
@@ -285,7 +318,7 @@ class _StatCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
             ),
           ),
         ],
@@ -337,6 +370,8 @@ class _RecentInvoiceTile extends StatelessWidget {
               children: [
                 Text(
                   invoice.client.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -344,6 +379,8 @@ class _RecentInvoiceTile extends StatelessWidget {
                 ),
                 Text(
                   invoice.invoiceNumber,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 13,
@@ -356,28 +393,25 @@ class _RecentInvoiceTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                CurrencyFormatter.format(invoice.total),
+                CurrencyFormatter.format(
+                  invoice.total,
+                  symbol: invoice.currency ?? 'AED',
+                ),
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w900,
                   fontSize: 16,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color:
-                      (invoice.status == InvoiceStatus.paid
-                              ? Colors.green
-                              : Colors.orange)
-                          .withValues(alpha: 0.1),
+                  color: _statusBase(invoice.status).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   invoice.status.name.toUpperCase(),
                   style: TextStyle(
-                    color: invoice.status == InvoiceStatus.paid
-                        ? Colors.green
-                        : Colors.orange,
+                    color: _statusText(context, invoice.status),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -474,7 +508,7 @@ class _RevenueChart extends StatelessWidget {
                 reservedSize: 42,
                 getTitlesWidget: (value, meta) {
                   return Text(
-                    '${value.toInt()}k',
+                    '${value == value.roundToDouble() ? value.toInt() : value.toStringAsFixed(1)}k',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.outline,
                       fontSize: 12,
@@ -544,14 +578,14 @@ class _PipelineFunnel extends StatelessWidget {
           _FunnelStep(
             label: 'Quotations',
             value: quotesValue,
-            color: Colors.blue.shade300,
+            color: Colors.blue.shade700,
             percent: 1.0,
           ),
           const SizedBox(height: 8),
           _FunnelStep(
             label: 'Proformas',
             value: proformasValue,
-            color: Colors.indigo.shade400,
+            color: Colors.indigo.shade700,
             percent: (quotesValue + proformasValue) > 0
                 ? (proformasValue / (quotesValue + proformasValue)).clamp(
                     0.6,
@@ -592,41 +626,44 @@ class _FunnelStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 80,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-          ),
-        ),
-        Expanded(
-          child: Stack(
-            alignment: Alignment.centerLeft,
-            children: [
-              FractionallySizedBox(
-                widthFactor: percent,
-                child: Container(
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
+            ),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
                 child: Text(
-                  CurrencyFormatter.format(value),
+                  CurrencyFormatter.format(value, symbol: 'AED'),
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        FractionallySizedBox(
+          widthFactor: percent,
+          child: Container(
+            height: 12,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
       ],
@@ -646,7 +683,7 @@ class _StatusBreakdownChart extends StatelessWidget {
     }
 
     return Container(
-      height: 200,
+      height: 200 * MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 1.6),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -666,7 +703,7 @@ class _StatusBreakdownChart extends StatelessWidget {
                 centerSpaceRadius: 40,
                 sections: InvoiceStatus.values.map((status) {
                   final count = statusCounts[status] ?? 0;
-                  final color = _getStatusColor(status);
+                  final color = _statusBase(status).shade700;
                   return PieChartSectionData(
                     color: color,
                     value: count.toDouble(),
@@ -695,14 +732,14 @@ class _StatusBreakdownChart extends StatelessWidget {
                       width: 12,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: _getStatusColor(status),
+                        color: _statusBase(status).shade700,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      status.name.toUpperCase(),
-                      style: const TextStyle(fontSize: 11),
+                      '${status.name.toUpperCase()} (${statusCounts[status] ?? 0})',
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ],
                 ),
@@ -712,21 +749,6 @@ class _StatusBreakdownChart extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Color _getStatusColor(InvoiceStatus status) {
-    switch (status) {
-      case InvoiceStatus.paid:
-        return Colors.green;
-      case InvoiceStatus.sent:
-        return Colors.blue;
-      case InvoiceStatus.overdue:
-        return Colors.red;
-      case InvoiceStatus.cancelled:
-        return Colors.grey;
-      case InvoiceStatus.draft:
-        return Colors.orange;
-    }
   }
 }
 
@@ -759,7 +781,17 @@ class _TopClientsList extends StatelessWidget {
           ).colorScheme.outlineVariant.withValues(alpha: 0.2),
         ),
       ),
-      child: ListView.separated(
+      child: topClients.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'Your biggest clients will appear here once you issue invoices.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            )
+          : ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: topClients.length,
@@ -777,19 +809,23 @@ class _TopClientsList extends StatelessWidget {
             leading: CircleAvatar(
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               child: Text(
-                clientNames[client.key]![0],
+                (clientNames[client.key] ?? '').trim().isEmpty
+                    ? '?'
+                    : clientNames[client.key]!.trim()[0].toUpperCase(),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                 ),
               ),
             ),
             title: Text(
-              clientNames[client.key]!,
+              clientNames[client.key] ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             trailing: Text(
-              CurrencyFormatter.format(client.value),
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              CurrencyFormatter.format(client.value, symbol: 'AED'),
+              style: const TextStyle(fontWeight: FontWeight.w900),
             ),
           );
         },

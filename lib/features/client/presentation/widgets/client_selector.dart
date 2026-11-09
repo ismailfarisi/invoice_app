@@ -20,9 +20,10 @@ class ClientSelector extends StatelessWidget {
         final clients = box.values.toList();
         if (clients.isEmpty) {
           return DropdownButtonFormField<Client>(
+            isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Select Company',
-              hintText: 'No companies available',
+              hintText: 'No companies yet. Add one first.',
             ),
             items: const [],
             onChanged: null,

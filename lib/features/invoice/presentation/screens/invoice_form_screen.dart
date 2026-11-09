@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_invoice_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_invoice_app/features/invoice/domain/models/invoice.dart';
 import 'package:flutter_invoice_app/features/invoice/data/invoice_repository.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_invoice_app/features/settings/data/settings_repository.d
 import 'package:flutter_invoice_app/core/utils/currency_formatter.dart';
 import 'package:flutter_invoice_app/features/credit_note/domain/credit_note_rules.dart';
 import 'package:flutter_invoice_app/features/credit_note/presentation/screens/credit_note_form_screen.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_invoice_app/core/presentation/widgets/item_card.dart';
 import 'package:flutter_invoice_app/core/presentation/widgets/form/form_section.dart';
@@ -42,6 +44,39 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   late TextEditingController _buyersOrderNumberController;
   DateTime? _buyersOrderDate;
   double _vatRate = 5.0;
+  bool _dirty = false;
+  bool _saving = false;
+
+  void _markDirty() {
+    if (!_dirty) setState(() => _dirty = true);
+  }
+
+  static String _fmtDate(DateTime d) => DateFormat.yMMMd().format(d);
+
+  Future<bool> _confirmDiscard() async {
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Discard changes?'),
+        content: const Text('Your edits to this invoice have not been saved.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep Editing'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    return discard ?? false;
+  }
 
   @override
   void initState() {
@@ -54,7 +89,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           'INV-${DateTime.now().millisecondsSinceEpoch}',
     );
     _items = widget.invoice?.items.toList() ?? [];
-    _date = widget.invoice?.date;
+    _date = widget.invoice == null ? DateTime.now() : widget.invoice!.date;
     _status = widget.invoice?.status ?? InvoiceStatus.draft;
     _termsAndConditionsController = TextEditingController(
       text: widget.invoice?.termsAndConditions,
@@ -87,6 +122,15 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     // Load Default VAT Rate from settings
     final profile = ref.read(businessProfileRepositoryProvider).getProfile();
     _vatRate = profile?.defaultVatRate ?? 5.0;
+    // For an existing invoice keep the rate it was issued with, so editing
+    // does not silently change its total.
+    final existing = widget.invoice;
+    if (existing != null &&
+        (existing.isVatApplicable ?? true) &&
+        existing.subtotal > 0 &&
+        existing.taxAmount > 0) {
+      _vatRate = existing.taxAmount / existing.subtotal * 100;
+    }
   }
 
   @override
@@ -108,25 +152,37 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       _items.add(
         LineItem(description: '', quantity: 1, unitPrice: 0, total: 0),
       );
+      _dirty = true;
     });
   }
 
   void _removeItem(int index) {
     setState(() {
       _items.removeAt(index);
+      _dirty = true;
     });
   }
 
   void _updateItem(int index, LineItem newItem) {
     setState(() {
       _items[index] = newItem.copyWith(id: _items[index].id);
+      _dirty = true;
     });
   }
 
   double get _subtotal => _items.fold(0, (sum, item) => sum + item.total);
 
   Future<void> _save() async {
+    if (_saving) return;
     if (_formKey.currentState!.validate()) {
+      if (_items.any((i) => i.description.trim().isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Every item needs a description'),
+          ),
+        );
+        return;
+      }
       if (_selectedClient == null) {
         ScaffoldMessenger.of(
           context,
@@ -148,6 +204,11 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         id: widget.invoice?.id ?? const Uuid().v4(),
         invoiceNumber: _invoiceNumberController.text,
         date: _date,
+        dueDate: widget.invoice?.dueDate,
+        notes: widget.invoice?.notes,
+        terms: widget.invoice?.terms,
+        userId: widget.invoice?.userId,
+        updatedAt: DateTime.now(),
         client: _selectedClient!, // Use selected object
         items: _items,
         subtotal: subtotal,
@@ -168,17 +229,44 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         buyersOrderDate: _buyersOrderDate,
       );
 
-      await ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
-      if (context.mounted) Navigator.pop(context);
+      setState(() => _saving = true);
+      try {
+        await ref.read(invoiceRepositoryProvider).saveInvoice(invoice);
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not save the invoice. Your changes are still here, please try again.',
+            ),
+          ),
+        );
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _dirty = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invoice saved')),
+      );
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final navigator = Navigator.of(context);
+        if (await _confirmDiscard()) navigator.pop();
+      },
+      child: Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.pageWash,
       appBar: AppBar(
         title: Text(
           widget.invoice == null ? 'New Invoice' : 'Edit Invoice',
@@ -195,8 +283,15 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Preview PDF',
             onPressed: () async {
-              if (widget.invoice != null) {
+              if (_dirty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Save your changes first to preview them'),
+                  ),
+                );
+              } else if (widget.invoice != null) {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => PdfPreviewScreen(invoice: widget.invoice!),
@@ -215,8 +310,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: FilledButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.save_outlined, size: 20),
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined, size: 20),
               label: const Text('Save'),
             ),
           ),
@@ -228,6 +329,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             constraints: const BoxConstraints(maxWidth: 1000),
             child: Form(
               key: _formKey,
+              onChanged: _markDirty,
               child: ListView(
                 padding: const EdgeInsets.symmetric(
                   vertical: 24,
@@ -247,6 +349,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                               onChanged: (client) {
                                 setState(() {
                                   _selectedClient = client;
+                                  _dirty = true;
                                 });
                               },
                             ),
@@ -254,6 +357,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                           const SizedBox(width: 12),
                           IconButton.filledTonal(
                             icon: const Icon(Icons.add),
+                            tooltip: 'Add new client',
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -297,7 +401,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                           );
                         }).toList(),
                         onChanged: (val) {
-                          if (val != null) setState(() => _currency = val);
+                          if (val != null) {
+                            setState(() {
+                              _currency = val;
+                              _dirty = true;
+                            });
+                          }
                         },
                       ),
                       const SizedBox(height: 20),
@@ -315,6 +424,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         onChanged: (val) {
                           setState(() {
                             _isVatApplicable = val;
+                            _dirty = true;
                           });
                         },
                       ),
@@ -332,7 +442,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                           );
                         }).toList(),
                         onChanged: (val) {
-                          if (val != null) setState(() => _status = val);
+                          if (val != null) {
+                            setState(() {
+                              _status = val;
+                              _dirty = true;
+                            });
+                          }
                         },
                       ),
                       const SizedBox(height: 20),
@@ -345,7 +460,10 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                             lastDate: DateTime(2100),
                           );
                           if (date != null) {
-                            setState(() => _date = date);
+                            setState(() {
+                              _date = date;
+                              _dirty = true;
+                            });
                           }
                         },
                         child: InputDecorator(
@@ -355,7 +473,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                           ),
                           child: Text(
                             _date != null
-                                ? _date!.toString().split(' ')[0]
+                                ? _fmtDate(_date!)
                                 : 'Select Date (Optional)',
                           ),
                         ),
@@ -443,7 +561,10 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                                   lastDate: DateTime(2100),
                                 );
                                 if (date != null) {
-                                  setState(() => _buyersOrderDate = date);
+                                  setState(() {
+                                    _buyersOrderDate = date;
+                                    _dirty = true;
+                                  });
                                 }
                               },
                               child: InputDecorator(
@@ -453,9 +574,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                                 ),
                                 child: Text(
                                   _buyersOrderDate != null
-                                      ? _buyersOrderDate!.toString().split(
-                                          ' ',
-                                        )[0]
+                                      ? _fmtDate(_buyersOrderDate!)
                                       : 'Select Date',
                                 ),
                               ),
@@ -503,6 +622,16 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  if (_items.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        'No items yet. Tap Add Item to list what you are charging for.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ..._items.asMap().entries.map((entry) {
                     final index = entry.key;
                     final item = entry.value;
@@ -514,10 +643,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         index: index,
                         onUpdate: (newItem) => _updateItem(index, newItem),
                         onRemove: () => _removeItem(index),
-                        // Pass currency here if ItemCard uses it?
-                        // ItemCard logic for formatting might need currency but usually it just takes values.
-                        // Let's check if ItemCard displays formatted currency.
-                        // Ideally ItemCard should take a currency argument now.
+                        currency: _currency,
                       ),
                     );
                   }),
@@ -566,17 +692,27 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Text(
-                              CurrencyFormatter.format(
-                                _isVatApplicable
-                                    ? _subtotal * (1 + _vatRate / 100)
-                                    : _subtotal,
-                                symbol: _currency,
-                              ),
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                color: Theme.of(context).colorScheme.primary,
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  CurrencyFormatter.format(
+                                    _isVatApplicable
+                                        ? _subtotal * (1 + _vatRate / 100)
+                                        : _subtotal,
+                                    symbol: _currency,
+                                  ),
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -589,6 +725,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

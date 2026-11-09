@@ -22,15 +22,26 @@ class ProformaPdfPreviewScreen extends ConsumerWidget {
       buildEvent: (format) =>
           PdfService().generateProforma(proforma, profile: profile),
       onExportExcel: () async {
-        final bytes = await ExcelService().generateProforma(
-          proforma,
-          profile: profile,
-        );
-        if (bytes != null) {
-          await FileUtils.shareFile(
-            bytes,
-            'Proforma_${proforma.proformaNumber}.xlsx',
+        try {
+          final bytes = await ExcelService().generateProforma(
+            proforma,
+            profile: profile,
           );
+          if (bytes != null) {
+            await FileUtils.shareFile(
+              bytes,
+              'Proforma_${proforma.proformaNumber}.xlsx',
+            );
+          }
+        } catch (e) {
+          debugPrint('Failed to export proforma to Excel: $e');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not export to Excel. Please try again.'),
+              ),
+            );
+          }
         }
       },
     );

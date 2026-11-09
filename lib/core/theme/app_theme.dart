@@ -110,3 +110,13 @@ class AppTheme {
     ),
   );
 }
+
+extension AppSurfaces on ColorScheme {
+  /// The tinted page behind white panels. Blended to an opaque colour because
+  /// a pushed route has nothing painted behind it, so a see-through page
+  /// background would show the dark window instead.
+  Color get pageWash => Color.alphaBlend(
+    surfaceContainerHighest.withValues(alpha: 0.3),
+    surface,
+  );
+}

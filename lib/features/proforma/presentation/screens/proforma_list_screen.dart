@@ -18,7 +18,33 @@ class ProformaListScreen extends ConsumerWidget {
       body: proformaAsyncValue.when(
         data: (proformas) => _ProformaList(proformas: proformas),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        error: (err, stack) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Couldn't load your proforma invoices.",
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      ref.read(proformaListProvider.notifier).loadProformas(),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Try again'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -42,27 +68,42 @@ class _ProformaList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     if (proformas.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.receipt_outlined, // Different icon
-              size: 64,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No proforma invoices found',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.receipt_outlined,
+                size: 64,
+                color: scheme.outlineVariant,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No proforma invoices yet',
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Send a customer an advance quote for payment. Tap New Proforma to create your first one.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+              ),
+            ],
+          ),
         ),
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(24),
+      // Bottom padding keeps the last card clear of the floating button.
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
       itemCount: proformas.length,
       itemBuilder: (context, index) {
         final proforma = proformas[index];
@@ -82,87 +123,106 @@ class _ProformaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ProformaFormScreen(proforma: proforma),
+    final scheme = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(24);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color:
-              Theme.of(context).cardTheme.color ??
-              Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ],
+      ),
+      child: Material(
+        color: Theme.of(context).cardTheme.color ?? scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.2),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.tertiary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ProformaFormScreen(proforma: proforma),
               ),
-              child: Icon(
-                Icons.assignment_outlined,
-                color: Theme.of(context).colorScheme.tertiary,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    proforma.client.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${proforma.proformaNumber} • ${proforma.date != null ? DateFormat.yMMMd().format(proforma.date!) : 'No Date'}',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
               children: [
-                Text(
-                  CurrencyFormatter.format(proforma.total),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: scheme.tertiary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    Icons.assignment_outlined,
+                    color: scheme.tertiary,
                   ),
                 ),
-                const SizedBox(height: 6),
-                _StatusBadge(status: proforma.status),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        proforma.client.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${proforma.proformaNumber} • ${proforma.date != null ? DateFormat.yMMMd().format(proforma.date!) : 'No date'}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 140),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          CurrencyFormatter.format(
+                            proforma.total,
+                            symbol: proforma.currency ?? 'AED',
+                          ),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      _StatusBadge(status: proforma.status),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -176,22 +236,26 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    // Darker shades (light mode) / lighter shades (dark mode) so the label
+    // stays readable on its own 10% tint.
+    final Color color;
     switch (status) {
       case ProformaStatus.draft:
-        color = Colors.grey;
+        color = scheme.onSurfaceVariant;
         break;
       case ProformaStatus.sent:
-        color = Colors.blue;
+        color = dark ? Colors.blue.shade200 : Colors.blue.shade800;
         break;
       case ProformaStatus.accepted:
-        color = Colors.green;
+        color = dark ? Colors.green.shade200 : Colors.green.shade800;
         break;
       case ProformaStatus.rejected:
-        color = Colors.red;
+        color = dark ? Colors.red.shade200 : Colors.red.shade800;
         break;
       case ProformaStatus.converted:
-        color = Colors.purple;
+        color = dark ? Colors.purple.shade200 : Colors.purple.shade800;
         break;
     }
 

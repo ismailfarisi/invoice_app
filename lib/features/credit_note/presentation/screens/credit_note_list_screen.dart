@@ -41,6 +41,8 @@ class CreditNoteListScreen extends ConsumerWidget {
     final picked = await showModalBottomSheet<Invoice>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
       builder: (_) => _InvoicePickerSheet(invoices: invoices),
     );
     if (picked != null && context.mounted) {
@@ -65,7 +67,8 @@ class CreditNoteListScreen extends ConsumerWidget {
             });
           if (notes.isEmpty) return const _EmptyState();
           return ListView.builder(
-            padding: const EdgeInsets.all(24),
+            // Bottom space keeps the last card clear of the floating button.
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
             itemCount: notes.length,
             itemBuilder: (context, index) => Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -91,8 +94,9 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -100,21 +104,18 @@ class _EmptyState extends StatelessWidget {
             Icon(
               Icons.assignment_return_outlined,
               size: 64,
-              color: Colors.grey.shade300,
+              color: colors.outlineVariant,
             ),
             const SizedBox(height: 16),
             Text(
               'No credit notes yet',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+              style: TextStyle(color: colors.onSurface, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
-              'Issue one when a customer cancels or returns all or part of an invoice.',
+              'Issue one when a customer cancels or returns all or part of an invoice. Tap New Credit Note to start.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
             ),
           ],
         ),
@@ -242,7 +243,12 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isVoided ? Colors.grey.shade800 : Colors.green.shade900;
+    // Deep shades on a light tint, pale shades on a dark one, so the label
+    // keeps its contrast in both themes.
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final color = isVoided
+        ? (dark ? Colors.grey.shade300 : Colors.grey.shade800)
+        : (dark ? Colors.green.shade200 : Colors.green.shade900);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -302,7 +308,7 @@ class _InvoicePickerSheetState extends State<_InvoicePickerSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Padding(
-                padding: EdgeInsets.fromLTRB(24, 24, 24, 12),
+                padding: EdgeInsets.fromLTRB(24, 4, 24, 12),
                 child: Text(
                   'Which invoice is this for?',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -342,6 +348,8 @@ class _InvoicePickerSheetState extends State<_InvoicePickerSheet> {
                             ),
                             title: Text(
                               invoice.client.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),
